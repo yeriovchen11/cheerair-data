@@ -530,6 +530,7 @@ body.bulk-open{padding-bottom:72px}
     </button>
     <button class="btn" id="bExport" title="导出标注数据(JSON)">导出标注</button>
     <button class="btn" id="bImport" title="导入标注数据(JSON)">导入标注</button>
+    <button class="btn" id="bSyncSet" title="配置 GitHub 同步（跨设备共享标注）" onclick="openGhSync()">同步设置</button>
     <span id="ovDirtyBadge" title="点此导出备份" style="display:none;align-items:center;gap:6px;margin-left:2px;padding:6px 11px;border-radius:8px;background:#fff1f0;border:1px solid #ffccc7;color:#cf1322;font-size:12.5px;font-weight:600;cursor:pointer" onclick="document.getElementById('bExport').click()">⚠️ <span class="cnt">0</span> 条标注未备份（点导出）</span>
   </div>
 
@@ -66642,14 +66643,19 @@ function saveOverlay(){
   scheduleCloudSync();   // 防抖推送到云端
 }
 
-/* ========== 云端同步（Netlify Function，人工标注实时持久化） ==========
- * 设计原则：分域存储，避免与机器回写冲突。
- *   - 人工字段（HUMAN_FIELDS）走云端：实时、跨设备、跨浏览器。
- *   - 机器外联状态（outreach：mcat/followups）只存在页面 bakedOverlay，
- *     由 writeback_library.py 重部署刷新，不进云端。
- * 因此「人工标签实时同步」与「批量邀约回写」两路互不覆盖。
+/* ========== 云端同步（GitHub 仓库文件 library/overlay.json，跨设备/跨浏览器共享） ==========
+ * 设计原则：人工标注（HUMAN_FIELDS）实时读写仓库文件，作为跨设备唯一真源；
+ *   机器外联状态（outreach）仍走 bakedOverlay + writeback，不进此文件。
+ * Token 仅存于本浏览器 localStorage（cheerair_gh_token），绝不进仓库/HTML；复用现有 PAT 即可。
  */
-var SYNC_URL = '/.netlify/functions/saveTags';
+var SYNC_REPO = 'yeriovchen11/cheerair-data';
+var SYNC_PATH = 'library/overlay.json';
+var GH_TOKEN_KEY = 'cheerair_gh_token';
+function getGhToken(){ try{ return (localStorage.getItem(GH_TOKEN_KEY)||'').trim(); }catch(e){ return ''; } }
+function setGhToken(t){ try{ if(t) localStorage.setItem(GH_TOKEN_KEY, t); else localStorage.removeItem(GH_TOKEN_KEY); }catch(e){} }
+function b64enc(s){ return btoa(unescape(encodeURIComponent(s))); }
+function b64dec(s){ try{ return decodeURIComponent(escape(atob(s))); }catch(e){ return ''; } }
+function ghApi(u, opt){ opt=opt||{}; var h={'content-type':'application/json','accept':'application/vnd.github+json','user-agent':'cheerair-library'}; var t=getGhToken(); if(t) h['authorization']='Bearer '+t; return fetch(u,{method:opt.method||'GET', headers:h, body:opt.body}); }
 var serverSynced = null;          // null=加载中, true=已同步, false=离线
 var mstateUpdated = 0;            // 机器外联状态最后更新时间（云端 mupdated）
 var _cloudTimer = null;
@@ -66677,56 +66683,76 @@ function scheduleCloudSync(){
 }
 function cloudPush(){
   if(!window.fetch) return;
-  var payload = { entries: humanSlice(OV) };
-  fetch(SYNC_URL, {method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify(payload)})
-    .then(function(r){ return r.json(); })
-    .then(function(d){ serverSynced = !!(d && d.ok); setSyncBadge(); })
-    .catch(function(){ serverSynced = false; setSyncBadge(); });
+  var token = getGhToken();
+  if(!token){ serverSynced = null; setSyncBadge(); return; }   // 未配置 token → 不推送，标灰
+  var content = b64enc(JSON.stringify({entries: humanSlice(OV)}));
+  var msg = 'sync: 标注更新 ' + new Date().toISOString();
+  ghApi('https://api.github.com/repos/'+SYNC_REPO+'/contents/'+SYNC_PATH).then(function(r){
+    if(r.status===200){
+      return r.json().then(function(j){
+        return ghApi('https://api.github.com/repos/'+SYNC_REPO+'/contents/'+SYNC_PATH,
+          {method:'PUT', body: JSON.stringify({message:msg, content:content, sha:j.sha})});
+      });
+    }
+    return ghApi('https://api.github.com/repos/'+SYNC_REPO+'/contents/'+SYNC_PATH,
+      {method:'PUT', body: JSON.stringify({message:msg, content:content})});   // 文件不存在 → 新建
+  }).then(function(r){
+    serverSynced = (r.status===200 || r.status===201); setSyncBadge();
+  }).catch(function(){ serverSynced = false; setSyncBadge(); });
 }
 function cloudPull(){
   if(!window.fetch) return Promise.resolve();
-  return fetch(SYNC_URL, {method:'GET', headers:{'content-type':'application/json'}})
-    .then(function(r){ return r.json(); })
-    .then(function(d){
-      // ① 人工标注（overlay_v1）
-      var entries = (d && d.entries) ? d.entries : {};
-      var keys = Object.keys(entries);
-      if(keys.length){
-        keys.forEach(function(k){
-          var patch = entries[k]; if(!patch || typeof patch !== 'object') return;
-          var cur = OV[k] || (OV[k] = {});
-          Object.keys(patch).forEach(function(f){ cur[f] = patch[f]; });  // 仅合并人工字段
-        });
-        saveOverlay();
-      }
-      // ② 机器外联状态（mstate_v1）——每日由 writeback 推送，无需重新部署
-      var ms = (d && d.mstate && typeof d.mstate === 'object') ? d.mstate : {};
-      var mkeys = Object.keys(ms);
-      if(mkeys.length){
-        mkeys.forEach(function(k){
-          MSTATE[k] = ms[k];
-          var cur = OV[k] || (OV[k] = {});
-          cur.outreach = ms[k];
-        });
-        saveMState();
-      }
-      if(keys.length || mkeys.length){
-        CREATORS.forEach(function(c){ applyOverlay(c); });
-        renderStats(); renderFilters(); renderTabs(); render();
-      } else if(Object.keys(humanSlice(OV)).length){
-        cloudPush();   // 本地有、云端空 → 首次迁移推上去
-      }
-      if(mkeys.length) mstateUpdated = (d && d.mupdated) || 0;
-      serverSynced = true; setSyncBadge();
-    })
-    .catch(function(){ serverSynced = false; setSyncBadge(); });
+  return ghApi('https://api.github.com/repos/'+SYNC_REPO+'/contents/'+SYNC_PATH).then(function(r){
+    if(r.status!==200){            // 文件不存在(404)或网络错 → 标离线，不阻塞页面
+      serverSynced = getGhToken() ? false : null;
+      setSyncBadge(); return null;
+    }
+    return r.json();
+  }).then(function(j){
+    if(!j || !j.content){ serverSynced=false; setSyncBadge(); return; }
+    var d; try{ d = JSON.parse(b64dec(j.content)); }catch(e){ serverSynced=false; setSyncBadge(); return; }
+    // ① 人工标注（entries，按 uid / creator_id / nickname 三级匹配）
+    var entries = (d && d.entries && typeof d.entries==='object') ? d.entries : {};
+    var keys = Object.keys(entries);
+    if(keys.length){
+      keys.forEach(function(k){
+        var patch = entries[k]; if(!patch || typeof patch!=='object') return;
+        var cur = OV[k] || (OV[k] = {});
+        Object.keys(patch).forEach(function(f){ cur[f] = patch[f]; });   // 仅合并人工字段
+      });
+      // 写回 localStorage 缓存（不触发 push，避免循环提交）
+      try{ var s=JSON.stringify(OV); localStorage.setItem(OV_KEY,s); try{localStorage.setItem(OV_BAK,s);}catch(e){} }catch(e){}
+      if(window.CREATORS) CREATORS.forEach(function(c){ applyOverlay(c); });
+      if(window.renderStats) renderStats(); if(window.renderFilters) renderFilters();
+      if(window.renderTabs) renderTabs(); if(window.render) render();
+    }
+    else if(Object.keys(humanSlice(OV)).length){ cloudPush(); }   // 本地有、云端空 → 首次迁移推上去
+    serverSynced = true; setSyncBadge();
+  }).catch(function(){ serverSynced=false; setSyncBadge(); });
 }
 function initCloudSync(){
-  // 先以本地已有标注渲染，再拉云端合并；离线也不阻塞页面
+  // 先以本地已有标注渲染，再拉仓库合并；离线也不阻塞页面
   cloudPull();
+  // 后台每 60 秒静默拉取，使其他已开设备近实时跟进
+  if(window.fetch) setInterval(function(){ try{ cloudPull(); }catch(e){} }, 60000);
+}
+function openGhSync(){
+  var cur = getGhToken();
+  var t = prompt('粘贴 GitHub PAT（需 repo 权限；仅存本浏览器，绝不进仓库）。\n留空并确认 = 清除配置。\n当前：'+(cur? cur.slice(0,4)+'…'+cur.slice(-4):'(未配置)'), cur);
+  if(t===null) return;            // 取消
+  t = t.trim();
+  setGhToken(t);
+  if(t){ cloudPush(); } else { serverSynced=null; setSyncBadge(); }
 }
 function setSyncBadge(){
   var el = document.getElementById('ovDirtyBadge'); if(!el) return;
+  if(!getGhToken()){
+    el.style.display = 'inline-flex';
+    el.style.background = '#fffbe6'; el.style.borderColor = '#ffe58f'; el.style.color = '#d48806';
+    el.title = '未配置 GitHub 同步：点「同步设置」粘贴 PAT，标注即跨设备共享';
+    el.innerHTML = '⚙ 未配置同步';
+    return;
+  }
   if(serverSynced === true){
     el.style.display = 'inline-flex';
     el.style.background = '#f6ffed'; el.style.borderColor = '#b7eb8f'; el.style.color = '#389e0d';
