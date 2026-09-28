@@ -1,0 +1,3 @@
+# Netlify 部署函数及其依赖（不用于 GitHub Pages 静态托管）
+/netlify/
+node_modules/
