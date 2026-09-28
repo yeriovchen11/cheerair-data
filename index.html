@@ -1,0 +1,74 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CheerAir 红人私邮邀约 · 运营看板</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    display: flex; flex-direction: column;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #0a0e27; color: #e2e8f0;
+  }
+  header {
+    flex: 0 0 auto; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+    min-height: 56px; padding: 8px 20px;
+    background: linear-gradient(90deg, #1e1b4b, #312e81);
+    color: #fff; box-shadow: 0 2px 8px rgba(0,0,0,.25);
+  }
+  .brand { font-size: 15px; font-weight: 700; }
+  .brand small { font-weight: 400; opacity: .82; margin-left: 8px; font-size: 12px; }
+  nav { display: flex; gap: 6px; }
+  nav button {
+    background: transparent; border: none; color: #c7d2fe;
+    font-size: 14px; padding: 8px 16px; border-radius: 8px; cursor: pointer;
+    transition: background .15s;
+  }
+  nav button:hover { background: rgba(255,255,255,.10); }
+  nav button.active { background: rgba(255,255,255,.18); color: #fff; font-weight: 600; }
+  .spacer { flex: 1; }
+  .direct { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+  .direct span.lbl { color: #a5b4fc; opacity: .85; }
+  .direct a {
+    color: #c7d2fe; text-decoration: none; padding: 4px 10px;
+    border: 1px solid rgba(165,180,252,.35); border-radius: 99px;
+    transition: all .15s;
+  }
+  .direct a:hover { background: rgba(165,180,252,.18); color: #fff; }
+  #frame { flex: 1 1 auto; width: 100%; border: none; background: #0a0e27; }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">CheerAir 红人私邮邀约 <small>运营看板</small></div>
+  <nav>
+    <button id="tabDash" class="active" onclick="switchTab('dash')">数据看板</button>
+    <button id="tabOver" onclick="switchTab('over')">任务总览</button>
+  </nav>
+  <span class="spacer"></span>
+  <div class="direct">
+    <span class="lbl">直接访问：</span>
+    <a href="./dashboard.html" target="_blank" rel="noopener">数据看板</a>
+    <a href="./overview.html" target="_blank" rel="noopener">任务总览</a>
+  </div>
+</header>
+<iframe id="frame" src="./dashboard.html" title="看板内容"></iframe>
+
+<script>
+  function switchTab(t) {
+    var f = document.getElementById("frame");
+    var d = document.getElementById("tabDash");
+    var o = document.getElementById("tabOver");
+    if (t === "dash") {
+      f.src = "./dashboard.html";
+      d.classList.add("active"); o.classList.remove("active");
+    } else {
+      f.src = "./overview.html";
+      o.classList.add("active"); d.classList.remove("active");
+    }
+  }
+</script>
+</body>
+</html>

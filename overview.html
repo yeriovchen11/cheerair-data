@@ -1,0 +1,323 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN" data-page-node-id="6SYwdTJqzu2Vrh3LRBJFe8">
+<head data-page-node-id="gRyh9DJoheVR0uJ0wQmMIT">
+<meta charset="utf-8" data-page-node-id="MTrmSBnozR63TgeMOV3099">
+<meta name="viewport" content="width=device-width, initial-scale=1" data-page-node-id="SORFKFn8qaF57z5gJUsDZf">
+<title>CheerAir 自动邀约 · 任务总览（聚焦本任务）</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; min-height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #0a0e27;
+    color: #e2e8f0;
+  }
+  .container { max-width: 1320px; margin: 0 auto; padding: 28px 32px 80px; }
+
+  h1 { font-size: 24px; margin: 0 0 6px; color: #f1f5f9; font-weight: 700; letter-spacing: -0.4px; }
+  .subtitle { color: #94a3b8; font-size: 13px; margin-bottom: 28px; }
+
+  .section {
+    background: transparent;
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    border-radius: 14px;
+    padding: 22px 28px 26px;
+    margin-bottom: 22px;
+  }
+  .section h2 {
+    font-size: 17px; margin: 0 0 4px;
+    color: #f1f5f9; display: flex; align-items: center; gap: 10px; font-weight: 700;
+  }
+  .section .desc { color: #94a3b8; font-size: 12.5px; margin: 0 0 16px; }
+
+  /* 思维导图 */
+  .mindmap-wrap {
+    background: #0a0e27;
+    border: 1px solid rgba(148, 163, 184, 0.1);
+    border-radius: 12px;
+    padding: 12px;
+  }
+  .mindmap-svg { width: 100%; height: auto; display: block; }
+  .mm-node { cursor: default; }
+  .mm-node:hover .mm-rect { stroke: #ffffff; }
+  .mm-node:hover .mm-text { fill: #ffffff; }
+
+  .legend {
+    display: flex; gap: 14px; font-size: 12px; color: #cbd5e1;
+    margin-top: 14px; flex-wrap: wrap; align-items: center; padding: 4px 6px 0;
+  }
+  .legend i {
+    display: inline-block; padding: 2px 10px; border-radius: 99px;
+    font-style: normal; margin-right: 5px; font-weight: 600; font-size: 11px;
+  }
+  .lg-red  { background: rgba(255,107,129,0.18); color:#ffa8b5; border:1px solid rgba(255,107,129,0.4); }
+  .lg-orange{ background: rgba(255,169,77,0.18);  color:#ffc078; border:1px solid rgba(255,169,77,0.4); }
+  .lg-green{ background: rgba(81,207,102,0.18);   color:#8ce99a; border:1px solid rgba(81,207,102,0.4); }
+  .lg-yellow{background: rgba(255,212,59,0.18);   color:#ffe066; border:1px solid rgba(255,212,59,0.4); }
+  .lg-done { background: rgba(81,207,102,0.18);   color:#8ce99a; border:1px solid rgba(81,207,102,0.4); }
+  .lg-part { background: rgba(79,157,255,0.18);   color:#74c0fc; border:1px solid rgba(79,157,255,0.4); }
+  .lg-plan { background: rgba(148,163,184,0.18);   color:#cbd5e1; border:1px solid rgba(148,163,184,0.4); }
+
+  /* 第二板块：核心主线任务（竖向一行一个） */
+  .uc-list { display: flex; flex-direction: column; gap: 12px; }
+  .uc-row {
+    background: #111734;
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    border-left: 3px solid #6c63ff;
+    border-radius: 12px;
+    padding: 16px 20px;
+    transition: all .18s ease;
+  }
+  .uc-row:hover {
+    border-color: rgba(108, 99, 255, 0.6);
+    transform: translateX(3px);
+    box-shadow: 0 6px 20px rgba(108, 99, 255, 0.15);
+  }
+  .uc-row-head { display: flex; align-items: center; gap: 12px; }
+  .uc-row-num {
+    width: 30px; height: 30px; border-radius: 8px; flex-shrink: 0;
+    background: linear-gradient(135deg, #6c63ff, #22d3ee);
+    color: #fff; font-weight: 700; font-size: 14px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .uc-row-title { font-size: 16px; font-weight: 700; color: #f1f5f9; flex: 1; }
+  .uc-row-desc { font-size: 13px; color: #cbd5e1; line-height: 1.7; margin: 10px 0 12px; }
+  .uc-row-bottom { display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-start; }
+  .uc-value {
+    flex: 1; min-width: 240px;
+    background: rgba(108, 99, 255, 0.10);
+    border-left: 3px solid #6c63ff;
+    padding: 10px 12px; border-radius: 4px;
+    font-size: 12px; color: #cbd5e1; line-height: 1.6;
+    border: 1px solid rgba(108, 99, 255, 0.22);
+  }
+  .uc-value b { color: #a5b4fc; }
+  .uc-flow {
+    flex: 1; min-width: 240px;
+    font-size: 11px; color: #94a3b8; line-height: 1.7;
+  }
+  .uc-flow code {
+    background: #1a2147; padding: 1px 6px; border-radius: 3px;
+    color: #cbd5e1; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10.5px;
+  }
+  .uc-tag { display: inline-block; font-size: 11px; padding: 3px 10px; border-radius: 99px; font-weight: 600; }
+  .tag-live    { background: rgba(34, 197, 94, 0.16); color: #86efac; border: 1px solid rgba(34, 197, 94, 0.36); }
+  .tag-partial { background: rgba(251, 191, 36, 0.16); color: #fcd34d; border: 1px solid rgba(251, 191, 36, 0.36); }
+  .tag-plan    { background: rgba(148, 163, 184, 0.16); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.36); }
+</style>
+</head>
+<body data-page-node-id="RmLb3erMj4YfR2hQAd2Kvl">
+<div class="container" data-page-node-id="1lKTUsbM4pFBiqaen3vedE">
+  <h1 data-page-node-id="PT9TIKjBT9MNqTeHEfTSHp">CheerAir 自动邀约 · 任务总览</h1>
+  <p class="subtitle" data-page-node-id="HaUuErNPpZ43M7VjqH7MtX">聚焦本任务 · 数据看板「任务总览」内容 + 历次迭代同步 · 4 大板块 24 节点</p>
+
+  <!-- ============ 第一板块：辐射式思维导图（聚焦本任务） ============ -->
+  <div class="section" data-page-node-id="GNAkN6bmMZZ41yMFCleYPL">
+    <h2 data-page-node-id="FXOOLAAADKpzUVV825dBwA">一、头脑风暴思维导图 <span class="pill" style="display:inline-block;font-size:11px;padding:3px 10px;border-radius:99px;background:rgba(108,99,255,.18);color:#a5b4fc;font-weight:600;border:1px solid rgba(108,99,255,.32);" data-page-node-id="XoaDBFKz0orsFKtdljeARB">辐射式 · XMind 风格</span></h2>
+    <p class="desc" data-page-node-id="fZy9ZULGg2xwYfWEO2dHur">内容取自数据看板「🧠 任务总览」板块，并同步历次迭代（自定义名单 / 粉丝反查 / 白嫖怪剔除 / 美东 2 晨+1 午 / 配额守卫 / SMTP 重试×3 / 垃圾词守卫 / 在线看板 / 飞书同步 / dealseek / keep-awake / 10 点自动化）。</p>
+    <div class="mindmap-wrap" data-page-node-id="77Bq4qagDQV2GuV6TYeRuG">
+      <svg class="mindmap-svg" viewBox="0 0 1600 1180" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" data-page-node-id="cPy1tEXkxC4GsEKFbALeh3">
+
+        <!-- ======== 连线层 ======== -->
+        <g class="links" fill="none" stroke-width="1.6" stroke-linecap="round" data-page-node-id="C2gJdqnrdGN8f03nfNdmgr">
+          <!-- 中心 → 一级 -->
+          <path d="M 770,560 C 640,470 540,320 470,180"  stroke="#ff6b81" opacity="0.6" data-page-node-id="dObuFYncfYDXcCgx6wQKGH"/>
+          <path d="M 830,560 C 960,470 1060,320 1130,180" stroke="#ffa94d" opacity="0.6" data-page-node-id="On5im3pRpMsmvpLBRCDJlD"/>
+          <path d="M 770,620 C 640,720 540,870 470,1006" stroke="#51cf66" opacity="0.6" data-page-node-id="NDGQ1y6g0c36HN62NbByCT"/>
+          <path d="M 830,620 C 960,720 1060,870 1130,1006" stroke="#ffd43b" opacity="0.6" data-page-node-id="Yumq3RA2RlFuoPWYB0clAi"/>
+
+          <!-- P1 左上 → 6 二级 -->
+          <path d="M 300,152 C 210,152 210,42  290,42"  stroke="#ff6b81" opacity="0.45" data-page-node-id="Up06ShFrKPbV49y8TO2pAc"/>
+          <path d="M 300,152 C 210,152 210,96  290,96"  stroke="#ff6b81" opacity="0.45" data-page-node-id="OHd0PRCSdvAyQMOdPCWy8U"/>
+          <path d="M 300,152 C 210,152 210,150 290,150" stroke="#ff6b81" opacity="0.45" data-page-node-id="SQQWvMf90Dz4KOaZE1QuT7"/>
+          <path d="M 300,152 C 210,152 210,204 290,204" stroke="#ff6b81" opacity="0.45" data-page-node-id="zD6ANU93PaYrlS2MOqQJgw"/>
+          <path d="M 300,152 C 210,152 210,258 290,258" stroke="#ff6b81" opacity="0.45" data-page-node-id="i2z4mGjUUxs4W1UrltFny9"/>
+          <path d="M 300,152 C 210,152 210,312 290,312" stroke="#ff6b81" opacity="0.45" data-page-node-id="lLGSwXUleBExXMl9WsbcQR"/>
+
+          <!-- P2 右上 → 6 二级 -->
+          <path d="M 1300,152 C 1390,152 1390,42  1310,42"  stroke="#ffa94d" opacity="0.45" data-page-node-id="XF4GceM2oxIE1Z8aew3JJ7"/>
+          <path d="M 1300,152 C 1390,152 1390,96  1310,96"  stroke="#ffa94d" opacity="0.45" data-page-node-id="K2tKcIJ4jDSBmEGuSMiAna"/>
+          <path d="M 1300,152 C 1390,152 1390,150 1310,150" stroke="#ffa94d" opacity="0.45" data-page-node-id="WKT5VsrEAdTBAGi7XCsoVH"/>
+          <path d="M 1300,152 C 1390,152 1390,204 1310,204" stroke="#ffa94d" opacity="0.45" data-page-node-id="XROnYYZx5CFd5bpAdtrfAU"/>
+          <path d="M 1300,152 C 1390,152 1390,258 1310,258" stroke="#ffa94d" opacity="0.45" data-page-node-id="ZiSsU1Abds9cSiOeAjrbZw"/>
+          <path d="M 1300,152 C 1390,152 1390,312 1310,312" stroke="#ffa94d" opacity="0.45" data-page-node-id="73CbbEJAQLrVlg0ROeSa8j"/>
+
+          <!-- P3 左下 → 6 二级 -->
+          <path d="M 300,1028 C 210,1028 210,842  290,842"  stroke="#51cf66" opacity="0.45" data-page-node-id="jxYOBzpn3BRNUT3P3vM383"/>
+          <path d="M 300,1028 C 210,1028 210,896  290,896"  stroke="#51cf66" opacity="0.45" data-page-node-id="F4fFQ7Jqu8CeMfumguwkyg"/>
+          <path d="M 300,1028 C 210,1028 210,950  290,950"  stroke="#51cf66" opacity="0.45" data-page-node-id="4uepTtyw25lljKlvuwRZ2u"/>
+          <path d="M 300,1028 C 210,1028 210,1004 290,1004" stroke="#51cf66" opacity="0.45" data-page-node-id="29SnaU2e932FmAbL9ZTAk1"/>
+          <path d="M 300,1028 C 210,1028 210,1058 290,1058" stroke="#51cf66" opacity="0.45" data-page-node-id="5orDQu5Rqwhm67OAzNdesn"/>
+          <path d="M 300,1028 C 210,1028 210,1112 290,1112" stroke="#51cf66" opacity="0.45" data-page-node-id="9X6zeOYON6i2djgGVIK5rq"/>
+
+          <!-- P4 右下 → 6 二级 -->
+          <path d="M 1300,1028 C 1390,1028 1390,842  1310,842"  stroke="#ffd43b" opacity="0.45" data-page-node-id="iio666hxLnNJAOMt4igQMU"/>
+          <path d="M 1300,1028 C 1390,1028 1390,896  1310,896"  stroke="#ffd43b" opacity="0.45" data-page-node-id="6MahqpWZKuCmLGKYqMRg0W"/>
+          <path d="M 1300,1028 C 1390,1028 1390,950  1310,950"  stroke="#ffd43b" opacity="0.45" data-page-node-id="VKh68nxtI3z5QjXgxlUqUX"/>
+          <path d="M 1300,1028 C 1390,1028 1390,1004 1310,1004" stroke="#ffd43b" opacity="0.45" data-page-node-id="p3iqcK14wzS5rW4UjKszya"/>
+          <path d="M 1300,1028 C 1390,1028 1390,1058 1310,1058" stroke="#ffd43b" opacity="0.45" data-page-node-id="EyDB5QfYAK0zrR4cuLB4uu"/>
+          <path d="M 1300,1028 C 1390,1028 1390,1112 1310,1112" stroke="#ffd43b" opacity="0.45" data-page-node-id="CmOhABfN94AFZRO37GnlFw"/>
+        </g>
+
+        <!-- ======== 节点层 ======== -->
+        <!-- 中心节点 -->
+        <g class="mm-node" data-page-node-id="E16SZnpDdzCre9oF2LVdds">
+          <rect x="612" y="530" width="376" height="120" rx="26"
+                fill="rgba(108,99,255,0.12)" stroke="none" data-page-node-id="zok5YMEdmUXEvpVNMxblB3"/>
+          <rect class="mm-rect" x="620" y="538" width="360" height="104" rx="22"
+                fill="rgba(108,99,255,0.18)" stroke="#6c63ff" stroke-width="1.8" data-page-node-id="OheaLe1QOaS2yasFZV6TNX"/>
+          <text class="mm-text" x="800" y="578" text-anchor="middle" fill="#ffffff"
+                font-size="24" font-weight="700" font-family="-apple-system, sans-serif" data-page-node-id="uxHE2slfySBHepBxIAbV9I">CheerAir · 自动邀约</text>
+          <text class="mm-text" x="800" y="608" text-anchor="middle" fill="#c4b5fd"
+                font-size="13" font-weight="500" data-page-node-id="uWSATEQ7ZpioYZ1tWtV7xN">产品 · 服务 · 场景</text>
+          <text class="mm-text" x="800" y="634" text-anchor="middle" fill="#a5b4fc"
+                font-size="11" letter-spacing="2" data-page-node-id="2WEBW7tksD0MsUAMu9KmtE">VER 100%   ·   持续运营</text>
+        </g>
+
+        <!-- ===== 一级 P1 左上 · 红人筛选 & 信息获取 ===== -->
+        <g class="mm-node" data-page-node-id="8fZHRm4K3woTuEoEtLWbA8">
+          <rect class="mm-rect" x="300" y="120" width="300" height="64" rx="16"
+                fill="rgba(255,107,129,0.12)" stroke="#ff6b81" stroke-width="1.6" data-page-node-id="dpGrZB923SYlhKIYNY1NsX"/>
+          <text class="mm-text" x="450" y="158" text-anchor="middle" fill="#ffa8b5"
+                font-size="16" font-weight="700" data-page-node-id="f2tObH3yEq0ebYcxW3bqiP">红人筛选 &amp; 信息获取</text>
+        </g>
+        <!-- P1 二级 -->
+        <g class="mm-node" data-page-node-id="FkFmsFPM3hfhqBD7nOkkEa"><rect class="mm-rect" x="10" y="20" width="280" height="42" rx="12" fill="#111734" stroke="#475569" stroke-width="1" data-page-node-id="UG0GtAWf3nMyVRISVDkwyw"/><circle cx="30" cy="41" r="4" fill="#51cf66" data-page-node-id="zC7EearuuruN5PN0Fd8rYG"/><text class="mm-text" x="46" y="38" fill="#e2e8f0" font-size="12.5" font-weight="600" data-page-node-id="9wLalGeTmmKJZN988PtGSo">站内名单</text><text class="mm-text" x="46" y="54" fill="#94a3b8" font-size="10.5" data-page-node-id="7SUhkEef5UqwG9Ua2PaNEE">PB MCP 拉取红人+合作状态</text></g>
+        <g class="mm-node" data-page-node-id="stxs5wXqhDINeNagBJ7KjK"><rect class="mm-rect" x="10" y="74" width="280" height="42" rx="12" fill="#111734" stroke="#475569" stroke-width="1" data-page-node-id="d0ScA42P9DabhWbCeywuBV"/><circle cx="30" cy="95" r="4" fill="#51cf66" data-page-node-id="OBVJDu0r1cYSyL35kOvfPD"/><text class="mm-text" x="46" y="92" fill="#e2e8f0" font-size="12.5" font-weight="600" data-page-node-id="dhaDlAqbr2X7UsV5EcQlTN">自定义名单</text><text class="mm-text" x="46" y="108" fill="#94a3b8" font-size="10.5" data-page-node-id="h2gYAe72XaLSJMtezGgIoT">飞书表单团队共建</text></g>
+        <g class="mm-node" data-page-node-id="v5ckVS2nOgrRd4uNtNBPnB"><rect class="mm-rect" x="10" y="128" width="280" height="42" rx="12" fill="#111734" stroke="#475569" stroke-width="1" data-page-node-id="0B5HbSUeFYT2BG0duUNFja"/><circle cx="30" cy="149" r="4" fill="#51cf66" data-page-node-id="vyZIgVsQAfabGtGxifPsia"/><text class="mm-text" x="46" y="146" fill="#e2e8f0" font-size="12.5" font-weight="600" data-page-node-id="XRbKkCquBTUmLAYXq3C3GN">内容切入点</text><text class="mm-text" x="46" y="162" fill="#94a3b8" font-size="10.5" data-page-node-id="hA77hox1CI8yLl6GSNHEao">IG/TK 主页抓选题·品牌</text></g>
+        <g class="mm-node" data-page-node-id="73FxOwUZ9wKScnWGHHD9wG"><rect class="mm-rect" x="10" y="182" width="280" height="42" rx="12" fill="#111734" stroke="#475569" stroke-width="1" data-page-node-id="M5mus5F6y3vohE3oclHbuy"/><circle cx="30" cy="203" r="4" fill="#51cf66" data-page-node-id="fkqAMBj9CwuKfzxbYK32Un"/><text class="mm-text" x="46" y="200" fill="#e2e8f0" font-size="12.5" font-weight="600" data-page-node-id="mwkCynIjJZD1WpoQLBAPPD">粉丝量反查</text><text class="mm-text" x="46" y="216" fill="#94a3b8" font-size="10.5" data-page-node-id="8xL9GmeKkd11uFv8jprxhW">YT/IG/TK 解析+缓存回写</text></g>
+        <g class="mm-node" data-page-node-id="1oWEWioFxc5mb1amAEVVM9"><rect class="mm-rect" x="10" y="236" width="280" height="42" rx="12" fill="#111734" stroke="#475569" stroke-width="1" data-page-node-id="xiuptvv2zMWIRMzfuoTUip"/><circle cx="30" cy="257" r="4" fill="#51cf66" data-page-node-id="2PgYIw6l6dKDdN0Ml3GLRw"/><text class="mm-text" x="46" y="254" fill="#e2e8f0" font-size="12.5" font-weight="600" data-page-node-id="1swFq180IfmwUng0rC860L">白嫖怪剔除</text><text class="mm-text" x="46" y="270" fill="#94a3b8" font-size="10.5" data-page-node-id="70eIW0sJteKjZdkVX2LCZP">飞书黑名单 252 条匹配</text></g>
+        <g class="mm-node" data-page-node-id="x3uIjKOjJIiRrxC5cTMhnS"><rect class="mm-rect" x="10" y="290" width="280" height="42" rx="12" fill="#111734" stroke="#475569" stroke-width="1" data-page-node-id="M3z2pEYpxyPgD2o6mNKqYd"/><circle cx="30" cy="311" r="4" fill="#4f9dff" data-page-node-id="AX2kRXG6e826p4yYPBOUIE"/><text class="mm-text" x="46" y="308" fill="#e2e8f0" font-size="12.5" font-weight="600" data-page-node-id="yqkHhT3JrHANrY6mlMAbZ3">红人邮箱</text><text class="mm-text" x="46" y="324" fill="#94a3b8" font-size="10.5" data-page-node-id="1Tl9Ezpl4DMbz8WUBNWq32">CSV 合作邮箱+社媒反查</text></g>
+
+        <!-- ===== 一级 P2 右上 · 邮件生成 & 发送任务 ===== -->
+        <g class="mm-node" data-page-node-id="FZbtN7CAoiKtz8mEk9nEuH">
+          <rect class="mm-rect" x="1000" y="120" width="300" height="64" rx="16"
+                fill="rgba(255,169,77,0.12)" stroke="#ffa94d" stroke-width="1.6" data-page-node-id="W8H1xPDQOOkUCpi5sjCjuJ"/>
+          <text class="mm-text" x="1150" y="158" text-anchor="middle" fill="#ffc078"
+                font-size="16" font-weight="700" data-page-node-id="6REqhipo0zViW3jSaIVFaE">邮件生成 &amp; 发送任务</text>
+        </g>
+        <!-- P2 二级 -->
+        <g class="mm-node" data-page-node-id="YxQsbKepsQf6UEndAneLOd"><rect class="mm-rect" x="1310" y="20" width="280" height="42" rx="12" fill="#111734" stroke="#475569" stroke-width="1" data-page-node-id="0Aud3DkIbElug8gbvhBxp1"/><circle cx="1330" cy="41" r="4" fill="#51cf66" data-page-node-id="gmOynyDhdvlD5QM2q8WPGh"/><text class="mm-text" x="1346" y="38" fill="#e2e8f0" font-size="12.5" font-weight="600" data-page-node-id="TRE97fKBzqhfHPZSWdBvLC">内容生成</text><text class="mm-text" x="1346" y="54" fill="#94a3b8" font-size="10.5" data-page-node-id="W6pd0ingecF5N0NmvBsAfa">首触·二次(T+4)·末次(T+8)</text></g>
+        <g class="mm-node" data-page-node-id="FQXeEmcw6OfSCvXmxWHlqr"><rect class="mm-rect" x="1310" y="74" width="280" height="42" rx="12" fill="#111734" stroke="#475569" stroke-width="1" data-page-node-id="wBLW6PYYiDwky4VvmrhWD2"/><circle cx="1330" cy="95" r="4" fill="#51cf66" data-page-node-id="51SHtIliPRWFUO7N31PStQ"/><text class="mm-text" x="1346" y="92" fill="#e2e8f0" font-size="12.5" font-weight="600" data-page-node-id="1nJuWNVTugQ735OuFxCbc1">Variant A/B</text><text class="mm-text" x="1346" y="108" fill="#94a3b8" font-size="10.5" data-page-node-id="4VMo9tpCtAMTfF2K0EBj1b">菜单式 / 深度定制方案</text></g>
+        <g class="mm-node" data-page-node-id="tJDa7m7E2WAf2w8PhfS40D"><rect class="mm-rect" x="1310" y="128" width="280" height="42" rx="12" fill="#111734" stroke="#475569" stroke-width="1" data-page-node-id="sHzR31i9hjBH9wpPlbuiQL"/><circle cx="1330" cy="149" r="4" fill="#51cf66" data-page-node-id="Ad94cAhsie3heM8JAqx4Td"/><text class="mm-text" x="1346" y="146" fill="#e2e8f0" font-size="12.5" font-weight="600" data-page-node-id="4kBqyPhOTfTyPYQYA6xbrR">多轮触达</text><text class="mm-text" x="1346" y="162" fill="#94a3b8" font-size="10.5" data-page-node-id="DEWWy6aJqBFi6KLi0cXn0B">首触 → 二次 → 末次</text></g>
+        <g class="mm-node" data-page-node-id="rWYRPoZDBcjPCuji0Wj3Hk"><rect class="mm-rect" x="1310" y="182" width="280" height="42" rx="12" fill="#111734" stroke="#475569" stroke-width="1" data-page-node-id="xyHNshQLf0X3G139GsQIsi"/><circle cx="1330" cy="203" r="4" fill="#51cf66" data-page-node-id="kITHbbAWDuIiS2GTTROlQp"/><text class="mm-text" x="1346" y="200" fill="#e2e8f0" font-size="12.5" font-weight="600" data-page-node-id="SFly7PPvc5FdRuUvIt0Rfr">美东时区窗口</text><text class="mm-text" x="1346" y="216" fill="#94a3b8" font-size="10.5" data-page-node-id="vHDlbXHDkRXLf30iBcKlEw">早 08-11:30 + 午 13-15:30 ET</text></g>
+        <g class="mm-node" data-page-node-id="ELEev7KH75nlnASTsAeCNg"><rect class="mm-rect" x="1310" y="236" width="280" height="42" rx="12" fill="#111734" stroke="#475569" stroke-width="1" data-page-node-id="Kfg4Ywj2wPMObxxp2gGTxK"/><circle cx="1330" cy="257" r="4" fill="#51cf66" data-page-node-id="TqCNDoTBDye7sQRPGn81OL"/><text class="mm-text" x="1346" y="254" fill="#e2e8f0" font-size="12.5" font-weight="600" data-page-node-id="83OiaroXAeOBKB1AcJ0XKQ">配额守卫</text><text class="mm-text" x="1346" y="270" fill="#94a3b8" font-size="10.5" data-page-node-id="0dwonrjdIzw0tP75UStXdX">每号 3 封/美东日 · SLOT_CAPS</text></g>
+        <g class="mm-node" data-page-node-id="0pYoqVAK4oruWXkI2mpf1H"><rect class="mm-rect" x="1310" y="290" width="280" height="42" rx="12" fill="#111734" stroke="#475569" stroke-width="1" data-page-node-id="zZ0EW9OZEjAvHRTmyr1ggh"/><circle cx="1330" cy="311" r="4" fill="#51cf66" data-page-node-id="mzL8HpA8q6uXBHO0EmPyBZ"/><text class="mm-text" x="1346" y="308" fill="#e2e8f0" font-size="12.5" font-weight="600" data-page-node-id="5xk1aPo3bWWxCEVv6VpbME">SMTP 重试×3</text><text class="mm-text" x="1346" y="324" fill="#94a3b8" font-size="10.5" data-page-node-id="hEgSW8581OF4TsmPDMZ6IL">错峰 1h+ · 垃圾词守卫</text></g>
+
+        <!-- ===== 一级 P3 左下 · 数据看板 & 闭环 ===== -->
+        <g class="mm-node" data-page-node-id="PJTCSamqNCAJNAazlyCQCd">
+          <rect class="mm-rect" x="300" y="996" width="300" height="64" rx="16"
+                fill="rgba(81,207,102,0.12)" stroke="#51cf66" stroke-width="1.6" data-page-node-id="Pl6O5fJGtSUsgb80GBVveN"/>
+          <text class="mm-text" x="450" y="1034" text-anchor="middle" fill="#8ce99a"
+                font-size="16" font-weight="700" data-page-node-id="Ffd6zehM67wPQnevxJPdj0">数据看板 &amp; 闭环</text>
+        </g>
+        <!-- P3 二级 -->
+        <g class="mm-node" data-page-node-id="MGJM6AtKj0k5Tj9VedEK1p"><rect class="mm-rect" x="10" y="820" width="280" height="42" rx="12" fill="#111734" stroke="#475569" stroke-width="1" data-page-node-id="x9yIpex3FvlLB5O3K12ZiO"/><circle cx="30" cy="841" r="4" fill="#51cf66" data-page-node-id="QpBSGHUMetkfzkLM5BuXT7"/><text class="mm-text" x="46" y="838" fill="#e2e8f0" font-size="12.5" font-weight="600" data-page-node-id="ysDvNCHxI2p6FErUEP1fxs">发送统计</text><text class="mm-text" x="46" y="854" fill="#94a3b8" font-size="10.5" data-page-node-id="EaucBKzMKN4OC4cD7mSluf">每日 / 累计发送数</text></g>
+        <g class="mm-node" data-page-node-id="xu6Um4xOTZTFBycTKJiHs6"><rect class="mm-rect" x="10" y="874" width="280" height="42" rx="12" fill="#111734" stroke="#475569" stroke-width="1" data-page-node-id="kaN8BsnDHdlXlSZikO5G2B"/><circle cx="30" cy="895" r="4" fill="#51cf66" data-page-node-id="5aCqtLcWXVuzQlDTtVIEcL"/><text class="mm-text" x="46" y="892" fill="#e2e8f0" font-size="12.5" font-weight="600" data-page-node-id="0caHe6tbDjzyhazfY2VCfe">回复跟进</text><text class="mm-text" x="46" y="908" fill="#94a3b8" font-size="10.5" data-page-node-id="R42holNlL6KLKz3E6vNino">红人已回 → 待我方跟进</text></g>
+        <g class="mm-node" data-page-node-id="MNE16Dny0dmDT7VeY74BYx"><rect class="mm-rect" x="10" y="928" width="280" height="42" rx="12" fill="#111734" stroke="#475569" stroke-width="1" data-page-node-id="QqZczvrbBi2R8NAz95dj91"/><circle cx="30" cy="949" r="4" fill="#51cf66" data-page-node-id="30d44CesYmKrBoBxDvTZ32"/><text class="mm-text" x="46" y="946" fill="#e2e8f0" font-size="12.5" font-weight="600" data-page-node-id="X40iM8o3OiTZoPBsCTF4sg">回复率 / 轮次</text><text class="mm-text" x="46" y="962" fill="#94a3b8" font-size="10.5" data-page-node-id="2kEj2WxvHmBvGYxmn6h58d">回复率 + touch 分布</text></g>
+        <g class="mm-node" data-page-node-id="WRYeOa0Mi5gkK57tgH9J1O"><rect class="mm-rect" x="10" y="982" width="280" height="42" rx="12" fill="#111734" stroke="#475569" stroke-width="1" data-page-node-id="OQgZRnCrEUDWhsjKz67BTz"/><circle cx="30" cy="1003" r="4" fill="#51cf66" data-page-node-id="lzXulckQo40sQlYne9H77R"/><text class="mm-text" x="46" y="1000" fill="#e2e8f0" font-size="12.5" font-weight="600" data-page-node-id="I8AN3B8Z1UhLHuRZvsaupA">在线运营看板</text><text class="mm-text" x="46" y="1016" fill="#94a3b8" font-size="10.5" data-page-node-id="z6nFvJZFvTarNEFdN3XISO">单链接双 tab · 发送邮箱列 · 日期顺序</text></g>
+        <g class="mm-node" data-page-node-id="nHxDOIBNUkOgIlFgScDuhR"><rect class="mm-rect" x="10" y="1036" width="280" height="42" rx="12" fill="#111734" stroke="#475569" stroke-width="1" data-page-node-id="d18JHFXOqo9U7UVdBaBdmG"/><circle cx="30" cy="1057" r="4" fill="#51cf66" data-page-node-id="M5U5GcoEHMwXFhyHgoHWXD"/><text class="mm-text" x="46" y="1054" fill="#e2e8f0" font-size="12.5" font-weight="600" data-page-node-id="MTFK3HRuM3FkkgOeE3zLLq">飞书多维表</text><text class="mm-text" x="46" y="1070" fill="#94a3b8" font-size="10.5" data-page-node-id="H8kGwDE9SLQ7Fc5M0Z1zRR">Saihu 数据回流同步</text></g>
+        <g class="mm-node" data-page-node-id="C29IykwIN1vhDQruo1QBaj"><rect class="mm-rect" x="10" y="1090" width="280" height="42" rx="12" fill="#111734" stroke="#475569" stroke-width="1" data-page-node-id="afwYVgXOg5tF8Zx9M7HlKR"/><circle cx="30" cy="1111" r="4" fill="#51cf66" data-page-node-id="I1x6oDQUFYylCkYve14rdu"/><text class="mm-text" x="46" y="1108" fill="#e2e8f0" font-size="12.5" font-weight="600" data-page-node-id="qyvvqEGUgyar3MiJTYX08b">dealseek 竞品监控</text><text class="mm-text" x="46" y="1124" fill="#94a3b8" font-size="10.5" data-page-node-id="VcgrTjfWDzHR6JGOeb4DPD">每日自动抓取竞品价格</text></g>
+
+        <!-- ===== 一级 P4 右下 · 养号 & 运维保障 ===== -->
+        <g class="mm-node" data-page-node-id="9R9IyqYmrilBRPJjS4OA3d">
+          <rect class="mm-rect" x="1000" y="996" width="300" height="64" rx="16"
+                fill="rgba(255,212,59,0.12)" stroke="#ffd43b" stroke-width="1.6" data-page-node-id="olxBHNEa59bmLw0crrpPZJ"/>
+          <text class="mm-text" x="1150" y="1034" text-anchor="middle" fill="#ffe066"
+                font-size="16" font-weight="700" data-page-node-id="3XCtHAhlo3XFePB1lCeBMJ">养号 &amp; 运维保障</text>
+        </g>
+        <!-- P4 二级 -->
+        <g class="mm-node" data-page-node-id="zOFnHr4xdJxxCAJkFFB0ok"><rect class="mm-rect" x="1310" y="820" width="280" height="42" rx="12" fill="#111734" stroke="#475569" stroke-width="1" data-page-node-id="seMHP5hDnwSHCsYjcOj45s"/><circle cx="1330" cy="841" r="4" fill="#51cf66" data-page-node-id="SDvp3eo0sgcbeEb1ZlAlSX"/><text class="mm-text" x="1346" y="838" fill="#e2e8f0" font-size="12.5" font-weight="600" data-page-node-id="PtNpRVEsSr7vmViyR0fWwo">真人互发</text><text class="mm-text" x="1346" y="854" fill="#94a3b8" font-size="10.5" data-page-node-id="jt28wbOjQJ87X4rx9tMDmd">老号↔新号模拟日常邮件</text></g>
+        <g class="mm-node" data-page-node-id="swlY64LKwbFHUexo0Svv7X"><rect class="mm-rect" x="1310" y="874" width="280" height="42" rx="12" fill="#111734" stroke="#475569" stroke-width="1" data-page-node-id="wOftUSOR8oOD2Dfnwio3al"/><circle cx="1330" cy="895" r="4" fill="#51cf66" data-page-node-id="wQYgzSJ5V9Z0tglmXLsHfI"/><text class="mm-text" x="1346" y="892" fill="#e2e8f0" font-size="12.5" font-weight="600" data-page-node-id="MCNnNDEcdpQYTAq1VvC8ev">第一周保护期</text><text class="mm-text" x="1346" y="908" fill="#94a3b8" font-size="10.5" data-page-node-id="1qgE6W7VhDAz2gi9GVE8SP">FIRST_WEEK_HOLD 仅 warmup</text></g>
+        <g class="mm-node" data-page-node-id="5M5znFOtvHS9cjyb7s4puE"><rect class="mm-rect" x="1310" y="928" width="280" height="42" rx="12" fill="#111734" stroke="#475569" stroke-width="1" data-page-node-id="9gwb71qVwC72UkEnivTxmf"/><circle cx="1330" cy="949" r="4" fill="#51cf66" data-page-node-id="S6oVItC7v7RCBXAP1Vigzy"/><text class="mm-text" x="1346" y="946" fill="#e2e8f0" font-size="12.5" font-weight="600" data-page-node-id="Fts0QE0jsHBWLV3OJ8eJlq">retry_failed</text><text class="mm-text" x="1346" y="962" fill="#94a3b8" font-size="10.5" data-page-node-id="2fa1AdaIXYcuxXuSBoDjsU">手动精准补发失败邮件</text></g>
+        <g class="mm-node" data-page-node-id="nTKrBlOQaasoMHwgDyY1N2"><rect class="mm-rect" x="1310" y="982" width="280" height="42" rx="12" fill="#111734" stroke="#475569" stroke-width="1" data-page-node-id="x8PnoIPztzeXo6qSThA0AO"/><circle cx="1330" cy="1003" r="4" fill="#51cf66" data-page-node-id="21e6zng6BJ6R2r83ZsMTmq"/><text class="mm-text" x="1346" y="1000" fill="#e2e8f0" font-size="12.5" font-weight="600" data-page-node-id="LRs0cohtORW7giWTTTm9Do">keep-awake</text><text class="mm-text" x="1346" y="1016" fill="#94a3b8" font-size="10.5" data-page-node-id="llIDEROGrRZPLikSHB7VXe">本机保活跑完两批发信</text></g>
+        <g class="mm-node" data-page-node-id="HV6HJtlN2VsEX3WOxqk5in"><rect class="mm-rect" x="1310" y="1036" width="280" height="42" rx="12" fill="#111734" stroke="#475569" stroke-width="1" data-page-node-id="7lBVFjHfdCsuUeKhXoDVXR"/><circle cx="1330" cy="1057" r="4" fill="#51cf66" data-page-node-id="sWnlUJqOBcw9cTjFbxwLa9"/><text class="mm-text" x="1346" y="1054" fill="#e2e8f0" font-size="12.5" font-weight="600" data-page-node-id="Md9JBMSoEIAelIDNuSvesb">10 点自动化</text><text class="mm-text" x="1346" y="1070" fill="#94a3b8" font-size="10.5" data-page-node-id="P0QkIz5o3CJrIH1d7BgQph">看板生成+同步+部署</text></g>
+        <g class="mm-node" data-page-node-id="moCs4Zmy6kdoGvTEmAk6u4"><rect class="mm-rect" x="1310" y="1090" width="280" height="42" rx="12" fill="#111734" stroke="#475569" stroke-width="1" data-page-node-id="YX2F6XsH95SAJXbIKywzCM"/><circle cx="1330" cy="1111" r="4" fill="#888" data-page-node-id="PRgKc4QRQTeD1CpdXPNYuY"/><text class="mm-text" x="1346" y="1108" fill="#e2e8f0" font-size="12.5" font-weight="600" data-page-node-id="qLi3Pl6WOhzTfPHIwhxV2T">平台内容订阅</text><text class="mm-text" x="1346" y="1124" fill="#94a3b8" font-size="10.5" data-page-node-id="uSlXHGgsf52v7zhjcGhFuZ">规划中</text></g>
+
+      </svg>
+    </div>
+    <div class="legend" data-page-node-id="xSJQ2tok3umovul89RmyU0">
+      <span data-page-node-id="mOEFzp1EIYmsiSBPLiZOPY"><i class="lg-red" data-page-node-id="jRuvzLpzGijIDMWwNIRrQQ">红</i>红人筛选 &amp; 信息获取</span>
+      <span data-page-node-id="stiM8eLqnBiI8YEA1nWOSv"><i class="lg-orange" data-page-node-id="iwD7Y2rlkH2Nkr6EwOoQGF">橙</i>邮件生成 &amp; 发送</span>
+      <span data-page-node-id="zCQlfZ8k7TWVJk8GVqKzXt"><i class="lg-green" data-page-node-id="h285NUnDn7qn7cLGLg1b7T">绿</i>数据看板 &amp; 闭环</span>
+      <span data-page-node-id="dLzONKcHlsrOwjcplIbEn0"><i class="lg-yellow" data-page-node-id="NkxBow2MNVX6wiwWUfP4h4">黄</i>养号 &amp; 运维保障</span>
+      <span style="margin-left:8px" data-page-node-id="PsUXDHW9Rho0K12alpR1F1"><i class="lg-done" data-page-node-id="vOUPyrNqvuOVFAh2ZVFxT1">●</i>已落地</span> <i class="lg-part" data-page-node-id="kLPqwf89H4A3nlFtgRjZ7D">●</i>部分/规划
+    </div>
+  </div>
+
+  <!-- ============ 第二板块：核心主线任务（竖向一行一个） ============ -->
+  <div class="section" data-page-node-id="E31kENXUF5Ch7Oo3r630Hf">
+    <h2 data-page-node-id="aYW8hYBHdXGdafMPivOhBQ">二、核心主线任务</h2>
+    <div class="uc-list" data-page-node-id="FGKgDqte87wWMXYsNQ06nG">
+
+      <div class="uc-row" data-page-node-id="YSx7GRiFTt6ImCpjjiZ4bG">
+        <div class="uc-row-head" data-page-node-id="KBBAwX9odJolsxrCCJp9bE">
+          <span class="uc-row-num" data-page-node-id="3UOgCTuiKH4JEp6GWYfEnO">1</span>
+          <span class="uc-row-title" data-page-node-id="33rOZpPr2g9Ujn5oeas72J">日清型邀约闭环</span>
+          <span class="uc-tag tag-live" data-page-node-id="RQAwScH81GOPvhoWFcH77H">已上线</span>
+        </div>
+        <p class="uc-row-desc" data-page-node-id="G0qDKASneeNsgVgbkpEr9F">每日 10:00 自动从 PB 站内 + 飞书表单合并名单，过飞书白嫖怪 + 垃圾词守卫，匹配美东窗口生成今日待发预览，团队点确认即发。</p>
+        <div class="uc-row-bottom" data-page-node-id="rMdZyJ7SrszR3n4UJSaPoi">
+          <div class="uc-value" data-page-node-id="MGFD2z0ib7gUA4Pt2gzZwl"><b data-page-node-id="D3LEqqDGBFIfhYBINH0RC5">价值:</b> 每人每天节省 2-3 小时整理名单 + 起草邮件的时间，团队把精力留给"该不该发"的判断。</div>
+          <div class="uc-flow" data-page-node-id="4KAmz8rAkbTSRDqncge5PJ">涉及节点: <code data-page-node-id="S2X5qWqkUcLTm8YRhhBlgS">站内名单</code> <code data-page-node-id="ffd23F0glDAYeo8Epih8lt">自定义名单</code> <code data-page-node-id="j481tBIT3efLRIX2z8UEgo">粉丝量反查</code> <code data-page-node-id="Ug2EDOf17qchBCzmfviePi">10 点自动化</code></div>
+        </div>
+      </div>
+
+      <div class="uc-row" data-page-node-id="LxrTcv9fYEspcydRDszJvb">
+        <div class="uc-row-head" data-page-node-id="uJzJQCLlC8EFsNhR5UFNBW">
+          <span class="uc-row-num" data-page-node-id="7MrAwwCOEC7iu69vgvlSsV">2</span>
+          <span class="uc-row-title" data-page-node-id="xRMvLRApNxnN0kwrWsPfMk">双重风控保域信誉</span>
+          <span class="uc-tag tag-live" data-page-node-id="JRyxgH62LZumaMWNk8vk3A">已上线</span>
+        </div>
+        <p class="uc-row-desc" data-page-node-id="32b31nRHVZDDvAOUjmQsYr">飞书白嫖怪名单 252 条（邮箱+社媒链接双向匹配）+ 垃圾词守卫（拦截促销词/伪造 Re:/全大写主题），自动剔除薅羊毛红人。</p>
+        <div class="uc-row-bottom" data-page-node-id="j7ImgRFfpb8TAIL0r7SQHS">
+          <div class="uc-value" data-page-node-id="kclIZ4KwljVblVDjzFOicA"><b data-page-node-id="qBlE85JVM1xILmxpPp5dlR">价值:</b> 避免发件域名被 Gmail 拉黑，长期可持续外联；新号上线不必从 0 开始养。</div>
+          <div class="uc-flow" data-page-node-id="R7K6QbLPKFBx1PM2NGdqPb">涉及节点: <code data-page-node-id="7HMPU5DIyHSUPjbIAiqqwa">白嫖怪剔除</code> <code data-page-node-id="73Bi3Ru961KwaixHorpTld">红人邮箱</code> <code data-page-node-id="XD7cmDkYZREYhUpCCBbAE8">垃圾词守卫</code> <code data-page-node-id="ZBxLmNzh1VZ6MzHVvf7Z6L">spam_guard</code></div>
+        </div>
+      </div>
+
+      <div class="uc-row" data-page-node-id="IiG1cRWjW18qavnvQ2uEhG">
+        <div class="uc-row-head" data-page-node-id="doLokPM3sp0pdFxBJiz8Nj">
+          <span class="uc-row-num" data-page-node-id="4vDgqptr1sg5tVyrozOW02">3</span>
+          <span class="uc-row-title" data-page-node-id="nbEEiygzsBlH722xnIHd7z">美东时区感知发送</span>
+          <span class="uc-tag tag-live" data-page-node-id="pcA6eWYCj3S15QuGEUpvvN">已上线</span>
+        </div>
+        <p class="uc-row-desc" data-page-node-id="CtWrfPln0LZZDyht39ADnE">每账号严格 3 封/美东自然日（早 2 + 午 1），早批 08:00-11:30 ET，午批 13:00-15:30 ET，错峰 1h+，双重窗口校验避开美区入睡时段。</p>
+        <div class="uc-row-bottom" data-page-node-id="NVuIZD2xxcmJymuRyAYzor">
+          <div class="uc-value" data-page-node-id="0jljFlSciYbEvChFkq7puT"><b data-page-node-id="AndVW9KtEdG5jcf6eKzDpQ">价值:</b> 对齐美区查信高频时段，邮件打开率预计提升 30-50%，GT02 Pro 价格钩子更易被点开。</div>
+          <div class="uc-flow" data-page-node-id="3QLr6yMvTwA9ponZ26eZBi">涉及节点: <code data-page-node-id="gLVbfFmC9Esj6V3SeazW5D">美东时区窗口</code> <code data-page-node-id="SQMyq4ScICNfnjws6DJRIO">配额守卫</code> <code data-page-node-id="oaYQNFjlwBfHdPLNqabJ5D">SMTP 重试×3</code> <code data-page-node-id="X8ca6rcxgI3cVxdT1Ca9wq">SLOT_CAPS</code></div>
+        </div>
+      </div>
+
+      <div class="uc-row" data-page-node-id="6kkkoN6x9G1FIHgDdo6eiC">
+        <div class="uc-row-head" data-page-node-id="MJLBIiiC22RhbfQSlb0Kl6">
+          <span class="uc-row-num" data-page-node-id="IqMLhhdUxcZJq9H4tcYel2">4</span>
+          <span class="uc-row-title" data-page-node-id="3v7jPIGmHaVPdFFFhi2dqG">7 天多轮自动跟进</span>
+          <span class="uc-tag tag-partial" data-page-node-id="m6zwZqL2qgDe9h2En5uSBx">部分实现</span>
+        </div>
+        <p class="uc-row-desc" data-page-node-id="sRsZUbAgL4QCUZ1H1Fr2HE">首触 → T+3~5 二次触达（自动换角度复用模板库） → T+7 末次跟进，根据回复状态自动推进或停止，无需手动记时间。</p>
+        <div class="uc-row-bottom" data-page-node-id="EPmYtYaezqoslCqWnzj9o0">
+          <div class="uc-value" data-page-node-id="xyiVowQlmT2SqgTjQq3GLw"><b data-page-node-id="V6BAlnA2APYvmjQeEwucNA">价值:</b> 多轮跟进预计将回复率从单封 5% 提升至 15% 左右；非真人手操作，统一话术更不会"忘跟"。</div>
+          <div class="uc-flow" data-page-node-id="YQaSO9DZbqFCUXqYUgnq3D">涉及节点: <code data-page-node-id="JkPgjkwTi5m8pvvAD8MI1C">内容生成</code> <code data-page-node-id="3nTJjtYlNmbWspKav0cWdf">多轮触达</code> <code data-page-node-id="9p3eTp7srhdzH8UjL0UASu">Variant A/B</code> <code data-page-node-id="2q14ALlptKSPKe8P1IEEFk">retry_failed</code></div>
+        </div>
+      </div>
+
+      <div class="uc-row" data-page-node-id="WbR5XqK9mF2LcHpD7vN3uA">
+        <div class="uc-row-head" data-page-node-id="WbRhdJ4nK8sP2xLmCvQ9tB">
+          <span class="uc-row-num" data-page-node-id="WbRn6Z1pQ3kX7vYdLmE2uC">5</span>
+          <span class="uc-row-title" data-page-node-id="WbRt8M2qR5nY9wZcLkV4uD">发信状态自动回写资源库</span>
+          <span class="uc-tag tag-live" data-page-node-id="WbRz3K7sL1pX5nYcQmF8uE">已上线</span>
+        </div>
+        <p class="uc-row-desc" data-page-node-id="WbRf9N4tB2qX6mLdRvC1uF">每日自动化第 2 步：读 sent_log 推导每个红人分类状态（首触→建联中；≥3 轮仍未回复→暂不跟进；回复 yes 仍留建联中），连同每轮邮件时间线（轮次 / 日期 / 主题 / 回复标记）回写红人资源库卡片，再自动重部署资源库。人工标注的「合作中 / 已完成」不被系统覆盖。</p>
+        <div class="uc-row-bottom" data-page-node-id="WbRk2M8pS6nY4xLdQvE3uG">
+          <div class="uc-value" data-page-node-id="WbRp5N1tB9qX7mLdRvF4uH"><b data-page-node-id="WbRw8K3sL2pX6nYcQmG5uI">价值:</b> 资源库与发信记录单源同步，团队在红人卡片即可看到完整跟进脉络（默认收起的时间线可展开），无需在发信日志与资源库之间来回切换。</div>
+          <div class="uc-flow" data-page-node-id="WbRy4M9pT3nY8xLdQvH6uJ">涉及节点: <code data-page-node-id="WbRz7K2sL5pX9nYcQmJ7uK">writeback_library.py</code> <code data-page-node-id="WbRa1N5tB8qX2mLdRvK8uL">sent_log</code> <code data-page-node-id="WbRb4M2pS7nY3xLdQvL9uM">状态机</code> <code data-page-node-id="WbRc8K6sL4pX1nYcQmM2uN">bakedOverlay 回写</code> <code data-page-node-id="WbRd3N9tB5qX4mLdRvN3uO">资源库重部署</code></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

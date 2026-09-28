@@ -1,0 +1,107 @@
+[
+ {
+  "name": "Home By Tammy",
+  "niche": "creator",
+  "handle": "homebytammy",
+  "src": "custom",
+  "priority_rank": 1
+ },
+ {
+  "name": "markable.ai",
+  "niche": "creator",
+  "handle": "markable.ai",
+  "src": "custom",
+  "priority_rank": 1
+ },
+ {
+  "name": "Mandy Starin✨",
+  "niche": "home decor",
+  "handle": "bullseyeonthebargain",
+  "src": "custom",
+  "priority_rank": 0
+ },
+ {
+  "name": "jessica",
+  "niche": "home decor",
+  "handle": "jessicaa.yount",
+  "src": "custom",
+  "priority_rank": 0
+ },
+ {
+  "name": "Lolly Jane 𐙚 home decor",
+  "niche": "home decor",
+  "handle": "lollyjaneblog",
+  "src": "custom",
+  "priority_rank": 0
+ },
+ {
+  "name": "Elnaz",
+  "niche": "home organizing",
+  "handle": "elnazhamai",
+  "src": "custom",
+  "priority_rank": 1
+ },
+ {
+  "name": "Lisa Chun",
+  "niche": "home",
+  "handle": "ourhome.becoming",
+  "src": "custom",
+  "priority_rank": 1
+ },
+ {
+  "name": "Mabell Media",
+  "niche": "Beauty/Skincare",
+  "handle": "makeup_mabell",
+  "src": "pb",
+  "priority_rank": 1
+ },
+ {
+  "name": "7 Days of Play",
+  "niche": "Parenting/Family/Travel",
+  "handle": "7daysofplay",
+  "src": "pb",
+  "priority_rank": 1
+ },
+ {
+  "name": "annnsvan",
+  "niche": "Home/Travel/Lifestyle",
+  "handle": "annnsvan",
+  "src": "pb",
+  "priority_rank": 1
+ },
+ {
+  "name": "velush.aestetic",
+  "niche": "Home/Lifestyle",
+  "handle": "velush.aesthetic",
+  "src": "pb",
+  "priority_rank": 1
+ },
+ {
+  "name": "Ozgetatli_",
+  "niche": "Lifestyle/Beauty",
+  "handle": "ozgetatli_",
+  "src": "pb",
+  "priority_rank": 1
+ },
+ {
+  "name": "Rose Peixoto",
+  "niche": "Beauty/Home/Family",
+  "handle": "rose.peixoto",
+  "src": "pb",
+  "priority_rank": 1
+ },
+ {
+  "name": "HayleyLarue",
+  "niche": "Home/Fashion/Lifestyle",
+  "handle": "HayleyLarue",
+  "src": "pb",
+  "priority_rank": 1
+ },
+ {
+  "name": "estcetera_",
+  "niche": "Beauty/Fashion",
+  "handle": "estcetera_",
+  "src": "pb",
+  "priority_rank": 1
+ }
+]

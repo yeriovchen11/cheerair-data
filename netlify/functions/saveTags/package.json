@@ -1,0 +1,10 @@
+{
+  "name": "savetags",
+  "version": "1.0.0",
+  "private": true,
+  "type": "commonjs",
+  "main": "saveTags.js",
+  "dependencies": {
+    "@netlify/blobs": "^11.0.3"
+  }
+}
