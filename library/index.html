@@ -66697,8 +66697,10 @@ function cloudPush(){
     return ghApi('https://api.github.com/repos/'+SYNC_REPO+'/contents/'+SYNC_PATH,
       {method:'PUT', body: JSON.stringify({message:msg, content:content})});   // 文件不存在 → 新建
   }).then(function(r){
-    serverSynced = (r.status===200 || r.status===201); setSyncBadge();
-  }).catch(function(){ serverSynced = false; setSyncBadge(); });
+    serverSynced = (r.status===200 || r.status===201);
+    if(!serverSynced) diag('push-fail', 'status='+(r&&r.status));
+    setSyncBadge();
+  }).catch(function(e){ diag('push-error', (e&&e.message)||e); serverSynced = false; setSyncBadge(); });
 }
 function cloudPull(){
   if(!window.fetch) return Promise.resolve();
@@ -66718,7 +66720,10 @@ function cloudPull(){
       keys.forEach(function(k){
         var patch = entries[k]; if(!patch || typeof patch!=='object') return;
         var cur = OV[k] || (OV[k] = {});
-        Object.keys(patch).forEach(function(f){ cur[f] = patch[f]; });   // 仅合并人工字段
+        // 本地优先：仅当本地该字段为空时才用云端值填充，避免云端把本机刚改的标注覆盖/抹掉
+        Object.keys(patch).forEach(function(f){
+          if(!(f in cur) || cur[f]==='' || cur[f]==null) cur[f] = patch[f];
+        });
       });
       // 写回 localStorage 缓存（不触发 push，避免循环提交）
       try{ var s=JSON.stringify(OV); localStorage.setItem(OV_KEY,s); try{localStorage.setItem(OV_BAK,s);}catch(e){} }catch(e){}
@@ -66742,7 +66747,7 @@ function openGhSync(){
   if(t===null) return;            // 取消
   t = t.trim();
   setGhToken(t);
-  if(t){ cloudPush(); } else { serverSynced=null; setSyncBadge(); }
+  if(t){ cloudPull().then(function(){ cloudPush(); }); } else { serverSynced=null; setSyncBadge(); }
 }
 function setSyncBadge(){
   var el = document.getElementById('ovDirtyBadge'); if(!el) return;
