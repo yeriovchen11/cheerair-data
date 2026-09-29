@@ -66693,23 +66693,41 @@ function decodeEntries(j){
   if(j && j.entries) return j.entries;
   return {};
 }
+function _isEmptyVal(v){ return (v==null || v==='' || v==='[object Object]'); }
 function applyEntries(entries){
-  var keys = Object.keys(entries||{});
+  var cloud = entries || {};
+  var keys = Object.keys(cloud);
   if(keys.length){
-    keys.forEach(function(k){
-      var patch = entries[k]; if(!patch || typeof patch!=='object') return;
-      var cur = OV[k] || (OV[k] = {});
-      // 本地优先：仅当本地该字段为空时才用云端值填充，避免云端把本机刚改的标注覆盖/抹掉
+    // 先找出「本地有、云端没有」的标注（多为离线编辑，云端尚未收到），稍后整包补推回云端，
+    // 避免下面云端优先合并时把未推送的本地改动覆盖丢失。
+    var hasLocalOnly = false;
+    Object.keys(OV).forEach(function(uid){
+      var sl = humanSlice((function(){ var o={}; o[uid]=OV[uid]; return o; })());
+      if(!sl[uid]) return;
+      if(!(uid in cloud)){ hasLocalOnly = true; return; }
+      var patch = sl[uid];
       Object.keys(patch).forEach(function(f){
-        if(!(f in cur) || cur[f]==='' || cur[f]==null) cur[f] = patch[f];
+        if(!_isEmptyVal(patch[f]) && _isEmptyVal((cloud[uid]||{})[f])) hasLocalOnly = true;
+      });
+    });
+    // 云端优先合并：保证任意浏览器（含无痕）打开都读到同一份。
+    // 只合并人工字段（outreach/followups 等机器字段不从此通道来，避免污染）；跳过 [object Object] 等脏值。
+    keys.forEach(function(k){
+      var patch = cloud[k]; if(!patch || typeof patch!=='object') return;
+      var cur = OV[k] || (OV[k] = {});
+      HUMAN_FIELDS.forEach(function(f){
+        if(f in patch && !_isEmptyVal(patch[f])) cur[f] = patch[f];
       });
     });
     // 写回 localStorage 缓存（不触发 push，避免循环提交）
     try{ var s=JSON.stringify(OV); localStorage.setItem(OV_KEY,s); try{localStorage.setItem(OV_BAK,s);}catch(e){} }catch(e){}
-    if(window.CREATORS) CREATORS.forEach(function(c){ applyOverlay(c); });
-    if(window.renderStats) renderStats(); if(window.renderFilters) renderFilters();
-    if(window.renderTabs) renderTabs(); if(window.render) render();
+    // 注意：CREATORS / render / applyOverlay 等均为 IIFE 作用域内函数/变量，不在 window 上，
+    // 故此处必须直接调用，不能用 window.X（否则条件恒为 false，云端合并后界面不会重渲染——
+    // 正是「普通浏览器看得到标注、无痕看不到」的根因）。
+    CREATORS.forEach(function(c){ applyOverlay(c); });
+    renderStats(); renderFilters(); renderTabs(); render();
     serverSynced = true; setSyncBadge();
+    if(hasLocalOnly) cloudPush();   // 把离线/未推送的本地标注补推回云端
   } else if(Object.keys(humanSlice(OV)).length){ cloudPush(); }   // 本地有、云端空 → 首次迁移推上去
   else { serverSynced = true; setSyncBadge(); }
 }
