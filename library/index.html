@@ -530,7 +530,7 @@ body.bulk-open{padding-bottom:72px}
     </button>
     <button class="btn" id="bExport" title="导出标注数据(JSON)">导出标注</button>
     <button class="btn" id="bImport" title="导入标注数据(JSON)">导入标注</button>
-    <button class="btn" id="bSyncSet" title="配置 GitHub 同步（跨设备共享标注）">同步设置</button>
+    <button class="btn" id="bSyncSet" title="查看同步服务状态 / 启动指引">同步</button>
     <span id="ovDirtyBadge" title="点此导出备份" style="display:none;align-items:center;gap:6px;margin-left:2px;padding:6px 11px;border-radius:8px;background:#fff1f0;border:1px solid #ffccc7;color:#cf1322;font-size:12.5px;font-weight:600;cursor:pointer" onclick="document.getElementById('bExport').click()">⚠️ <span class="cnt">0</span> 条标注未备份（点导出）</span>
   </div>
 
@@ -66643,19 +66643,19 @@ function saveOverlay(){
   scheduleCloudSync();   // 防抖推送到云端
 }
 
-/* ========== 云端同步（GitHub 仓库文件 library/overlay.json，跨设备/跨浏览器共享） ==========
- * 设计原则：人工标注（HUMAN_FIELDS）实时读写仓库文件，作为跨设备唯一真源；
- *   机器外联状态（outreach）仍走 bakedOverlay + writeback，不进此文件。
- * Token 仅存于本浏览器 localStorage（cheerair_gh_token），绝不进仓库/HTML；复用现有 PAT 即可。
+/* ========== 云端同步（经由本机同步中继 gh_sync_relay → GitHub 仓库文件 library/overlay.json） ==========
+ * 关键约束：浏览器跨域调用 api.github.com 时，GitHub 的 CORS 策略会剥离 Authorization 头，
+ *   导致 PAT 无法在浏览器内直接使用（读=匿名、写=403）。因此改为：
+ *   - 本机常驻轻量中继（http://127.0.0.1:8731），由它持 token 在服务端写 GitHub（无 CORS 问题）；
+ *   - 页面只与本机中继通信；中继不可达时自动回退到同域只读（./overlay.json，GitHub Pages 已发布）。
+ *   效果：Mac 上编辑 → 中继写 GitHub → 任意设备/浏览器（含无痕）打开都读到同一份。
+ *   中继由 launchd 常驻（com.cheerair.gh-sync.plist），token 留在 Mac 的 ~/.workbuddy/github_token，绝不进页面。
  */
-var SYNC_REPO = 'yeriovchen11/cheerair-data';
-var SYNC_PATH = 'library/overlay.json';
-var GH_TOKEN_KEY = 'cheerair_gh_token';
-function getGhToken(){ try{ return (localStorage.getItem(GH_TOKEN_KEY)||'').trim(); }catch(e){ return ''; } }
-function setGhToken(t){ try{ if(t) localStorage.setItem(GH_TOKEN_KEY, t); else localStorage.removeItem(GH_TOKEN_KEY); }catch(e){} }
+var RELAY = 'http://127.0.0.1:8731';
 function b64enc(s){ return btoa(unescape(encodeURIComponent(s))); }
-function b64dec(s){ try{ return decodeURIComponent(escape(atob(s))); }catch(e){ return ''; } }
-function ghApi(u, opt){ opt=opt||{}; var h={'content-type':'application/json','accept':'application/vnd.github+json','user-agent':'cheerair-library'}; var t=getGhToken(); if(t) h['authorization']='Bearer '+t; return fetch(u,{method:opt.method||'GET', headers:h, body:opt.body}); }
+function b64dec(s){ try{ return decodeURIComponent(escape(atob((s||'').replace(/\s/g,'')))); }catch(e){ return ''; } }  // 容错：先去空白再解码（避免 GitHub 返回 base64 含换行导致 atob 抛错）
+function relayGet(){ return fetch(RELAY+'/overlay', {headers:{'accept':'application/json'}}); }
+function relayPut(entries){ return fetch(RELAY+'/overlay', {method:'PUT', headers:{'content-type':'application/json'}, body: JSON.stringify({entries:entries})}); }
 var serverSynced = null;          // null=加载中, true=已同步, false=离线
 var mstateUpdated = 0;            // 机器外联状态最后更新时间（云端 mupdated）
 var _cloudTimer = null;
@@ -66683,57 +66683,48 @@ function scheduleCloudSync(){
 }
 function cloudPush(){
   if(!window.fetch) return;
-  var token = getGhToken();
-  if(!token){ serverSynced = null; setSyncBadge(); return; }   // 未配置 token → 不推送，标灰
-  var content = b64enc(JSON.stringify({entries: humanSlice(OV)}));
-  var msg = 'sync: 标注更新 ' + new Date().toISOString();
-  ghApi('https://api.github.com/repos/'+SYNC_REPO+'/contents/'+SYNC_PATH).then(function(r){
-    if(r.status===200){
-      return r.json().then(function(j){
-        return ghApi('https://api.github.com/repos/'+SYNC_REPO+'/contents/'+SYNC_PATH,
-          {method:'PUT', body: JSON.stringify({message:msg, content:content, sha:j.sha})});
+  relayPut(humanSlice(OV))
+    .then(function(r){ return r.json(); })
+    .then(function(d){ serverSynced = !!(d && d.ok); setSyncBadge(); })
+    .catch(function(){ serverSynced = null; setSyncBadge(); });   // 中继离线：编辑留本地，徽标提示
+}
+function decodeEntries(j){
+  if(j && j.content){ try{ var d=JSON.parse(b64dec(j.content)); return d.entries||{}; }catch(e){ return {}; } }
+  if(j && j.entries) return j.entries;
+  return {};
+}
+function applyEntries(entries){
+  var keys = Object.keys(entries||{});
+  if(keys.length){
+    keys.forEach(function(k){
+      var patch = entries[k]; if(!patch || typeof patch!=='object') return;
+      var cur = OV[k] || (OV[k] = {});
+      // 本地优先：仅当本地该字段为空时才用云端值填充，避免云端把本机刚改的标注覆盖/抹掉
+      Object.keys(patch).forEach(function(f){
+        if(!(f in cur) || cur[f]==='' || cur[f]==null) cur[f] = patch[f];
       });
-    }
-    return ghApi('https://api.github.com/repos/'+SYNC_REPO+'/contents/'+SYNC_PATH,
-      {method:'PUT', body: JSON.stringify({message:msg, content:content})});   // 文件不存在 → 新建
-  }).then(function(r){
-    serverSynced = (r.status===200 || r.status===201);
-    if(!serverSynced) diag('push-fail', 'status='+(r&&r.status));
-    setSyncBadge();
-  }).catch(function(e){ diag('push-error', (e&&e.message)||e); serverSynced = false; setSyncBadge(); });
+    });
+    // 写回 localStorage 缓存（不触发 push，避免循环提交）
+    try{ var s=JSON.stringify(OV); localStorage.setItem(OV_KEY,s); try{localStorage.setItem(OV_BAK,s);}catch(e){} }catch(e){}
+    if(window.CREATORS) CREATORS.forEach(function(c){ applyOverlay(c); });
+    if(window.renderStats) renderStats(); if(window.renderFilters) renderFilters();
+    if(window.renderTabs) renderTabs(); if(window.render) render();
+    serverSynced = true; setSyncBadge();
+  } else if(Object.keys(humanSlice(OV)).length){ cloudPush(); }   // 本地有、云端空 → 首次迁移推上去
+  else { serverSynced = true; setSyncBadge(); }
 }
 function cloudPull(){
   if(!window.fetch) return Promise.resolve();
-  return ghApi('https://api.github.com/repos/'+SYNC_REPO+'/contents/'+SYNC_PATH).then(function(r){
-    if(r.status!==200){            // 文件不存在(404)或网络错 → 标离线，不阻塞页面
-      serverSynced = getGhToken() ? false : null;
-      setSyncBadge(); return null;
-    }
-    return r.json();
-  }).then(function(j){
-    if(!j || !j.content){ serverSynced=false; setSyncBadge(); return; }
-    var d; try{ d = JSON.parse(b64dec(j.content)); }catch(e){ serverSynced=false; setSyncBadge(); return; }
-    // ① 人工标注（entries，按 uid / creator_id / nickname 三级匹配）
-    var entries = (d && d.entries && typeof d.entries==='object') ? d.entries : {};
-    var keys = Object.keys(entries);
-    if(keys.length){
-      keys.forEach(function(k){
-        var patch = entries[k]; if(!patch || typeof patch!=='object') return;
-        var cur = OV[k] || (OV[k] = {});
-        // 本地优先：仅当本地该字段为空时才用云端值填充，避免云端把本机刚改的标注覆盖/抹掉
-        Object.keys(patch).forEach(function(f){
-          if(!(f in cur) || cur[f]==='' || cur[f]==null) cur[f] = patch[f];
-        });
-      });
-      // 写回 localStorage 缓存（不触发 push，避免循环提交）
-      try{ var s=JSON.stringify(OV); localStorage.setItem(OV_KEY,s); try{localStorage.setItem(OV_BAK,s);}catch(e){} }catch(e){}
-      if(window.CREATORS) CREATORS.forEach(function(c){ applyOverlay(c); });
-      if(window.renderStats) renderStats(); if(window.renderFilters) renderFilters();
-      if(window.renderTabs) renderTabs(); if(window.render) render();
-    }
-    else if(Object.keys(humanSlice(OV)).length){ cloudPush(); }   // 本地有、云端空 → 首次迁移推上去
-    serverSynced = true; setSyncBadge();
-  }).catch(function(){ serverSynced=false; setSyncBadge(); });
+  // 优先走本机中继（带写能力，数据最新）
+  return relayGet()
+    .then(function(r){ if(!r.ok) throw new Error('relay '+r.status); return r.json(); })
+    .then(function(j){ applyEntries(decodeEntries(j)); })
+    .catch(function(){   // 中继不可达 → 回退同域只读（GitHub Pages 已发布文件）
+      return fetch('./overlay.json', {headers:{'accept':'application/json'}})
+        .then(function(r){ if(!r.ok) throw new Error('static '+r.status); return r.json(); })
+        .then(function(d){ applyEntries(d && d.entries ? d.entries : {}); })
+        .catch(function(){ serverSynced = null; setSyncBadge(); });
+    });
 }
 function initCloudSync(){
   // 先以本地已有标注渲染，再拉仓库合并；离线也不阻塞页面
@@ -66742,41 +66733,31 @@ function initCloudSync(){
   if(window.fetch) setInterval(function(){ try{ cloudPull(); }catch(e){} }, 60000);
 }
 function openGhSync(){
-  var cur = getGhToken();
-  var t = prompt('粘贴 GitHub PAT（需 repo 权限；仅存本浏览器，绝不进仓库）。\n留空并确认 = 清除配置。\n当前：'+(cur? cur.slice(0,4)+'…'+cur.slice(-4):'(未配置)'), cur);
-  if(t===null) return;            // 取消
-  t = t.trim();
-  setGhToken(t);
-  if(t){ cloudPull().then(function(){ cloudPush(); }); } else { serverSynced=null; setSyncBadge(); }
+  // 同步已改为本机中继模式，不再需要页面内填 token。此按钮用于检查中继状态 / 给出启动指引。
+  relayGet().then(function(r){ if(!r.ok) throw 0; return r.json(); })
+    .then(function(j){
+      if(j && j.content){ alert('✅ 同步服务已在线：你的标注会自动写入 GitHub，任意设备打开都同步。'); }
+      else { alert('⚠️ 本机同步中继未运行。\n在 Mac 终端执行一次：\n\n  launchctl load ~/Library/LaunchAgents/com.cheerair.gh-sync.plist\n\n然后刷新本页即可。'); }
+    })
+    .catch(function(){ alert('⚠️ 本机同步中继未运行（或 Mac 已休眠）。\n在 Mac 终端执行：\n\n  launchctl load ~/Library/LaunchAgents/com.cheerair.gh-sync.plist\n\n启动后刷新本页即可。'); });
 }
 function setSyncBadge(){
   var el = document.getElementById('ovDirtyBadge'); if(!el) return;
-  if(!getGhToken()){
-    el.style.display = 'inline-flex';
-    el.style.background = '#fffbe6'; el.style.borderColor = '#ffe58f'; el.style.color = '#d48806';
-    el.title = '未配置 GitHub 同步：点「同步设置」粘贴 PAT，标注即跨设备共享';
-    el.innerHTML = '⚙ 未配置同步';
-    return;
-  }
   if(serverSynced === true){
     el.style.display = 'inline-flex';
     el.style.background = '#f6ffed'; el.style.borderColor = '#b7eb8f'; el.style.color = '#389e0d';
-    var extra = '';
-    if(mstateUpdated){
-      try{ extra = '；外联状态更新于 ' + new Date(mstateUpdated).toLocaleString('zh-CN'); }catch(e){}
-    }
-    el.title = '标注已云端同步（跨设备/跨浏览器可见，无需导出）' + extra;
-    el.innerHTML = '✓ 已同步云端';
+    el.title = '已连接本机同步服务：标注实时写入 GitHub，任意设备打开都同步';
+    el.innerHTML = '✓ 已同步（本机服务在线）';
   } else if(serverSynced === false){
     el.style.display = 'inline-flex';
     el.style.background = '#fff1f0'; el.style.borderColor = '#ffccc7'; el.style.color = '#cf1322';
-    el.title = '离线：云端同步不可用，标注仅存本机，请点「导出标注」备份';
-    el.innerHTML = '⚠️ 离线（仅本机）';
+    el.title = '本机同步服务未运行：标注仅存本机。点「同步」查看启动指引';
+    el.innerHTML = '⚠️ 离线（同步服务未启动）';
   } else {
     el.style.display = 'inline-flex';
     el.style.background = '#f5f5f5'; el.style.borderColor = '#d9d9d9'; el.style.color = '#888';
-    el.title = '正在连接云端…';
-    el.innerHTML = '◌ 同步中…';
+    el.title = '正在连接本机同步服务…';
+    el.innerHTML = '◌ 连接中…';
   }
 }
 
