@@ -68089,6 +68089,44 @@ initCloudSync();          // 拉取云端标注并合并、重新套用（离线
 .tm-error{color:#ff7b72;font-weight:600;}
 .tm-msg{color:#7d8694;font-size:10.5px;word-break:break-all;}
 </style>
+<script>
+/* sendTest 端点回落链（marker: gt-sendtest-fallback）：
+   ① 同域 /.netlify/functions/sendTest（页面若部署在 Netlify 且函数已部署）；
+   ② Mac 本机中继 http://127.0.0.1:8731/sendTest（launchd 常驻，本机 Gmail 直发）；
+   ③ Netlify 线上绝对地址（备用）。
+   github.io 没有 Functions，以前固定用相对路径必然 404 —— 故逐个尝试，返回 JSON 即成功。 */
+window.gtSendTest = function(jobsOrJob){
+  var jobs = Object.prototype.toString.call(jobsOrJob)==='[object Array]' ? jobsOrJob : [jobsOrJob];
+  var endpoints = [
+    '/.netlify/functions/sendTest',
+    'http://127.0.0.1:8731/sendTest',
+    'https://delightful-froyo-79dd9f.netlify.app/.netlify/functions/sendTest'
+  ];
+  var i = 0;
+  function attempt(){
+    return fetch(endpoints[i], {method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify({jobs:jobs})})
+      .then(function(r){
+        return r.text().then(function(txt){
+          var d=null;
+          try{ d=JSON.parse(txt); }catch(e){}
+          if(d===null){
+            if(i < endpoints.length-1){ i++; return attempt(); }
+            var hint = (r.status===404 || /Page not found|<html/i.test(txt))
+              ? '发信通道不可用：本机中继（127.0.0.1:8731）未在运行且 Netlify 函数未部署。请确认 Mac 上 launchd 任务 com.cheerair.gh-sync 在跑，或部署 Netlify Functions。'
+              : ('HTTP '+r.status+' 响应非 JSON：'+txt.slice(0,120));
+            throw new Error(hint);
+          }
+          return {ok:r.ok, d:d};
+        });
+      })
+      .catch(function(e){
+        if(i < endpoints.length-1){ i++; return attempt(); }
+        throw e;
+      });
+  }
+  return attempt();
+};
+</script>
 <div id="tmWidget">
   <button id="tmToggle" class="tm-toggle" title="测试邮件可达性">🧪 测试邮件可达性</button>
   <div id="tmPanel" class="tm-panel" hidden>
@@ -68192,8 +68230,7 @@ initCloudSync();          // 拉取云端标注并合并、重新套用（离线
     });
     if(!jobs.length){els.result.innerHTML='<div class="tm-err">没有有效的测试收件箱（需含 @）。</div>';return;}
     els.send.disabled=true; els.result.innerHTML='<div class="tm-info">发送中（Gmail 真实发出，最多 25 封，请稍候）…</div>';
-    fetch('/.netlify/functions/sendTest',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({jobs: jobs})})
-      .then(function(r){return r.json().then(function(d){return {ok:r.ok,d:d};});})
+    gtSendTest(jobs)
       .then(function(o){
         if(!o.ok){els.result.innerHTML='<div class="tm-err">函数错误：'+esc(o.d.error||o.d.message||o.status)+'</div>';els.send.disabled=false;return;}
         var d=o.d;
@@ -68332,21 +68369,7 @@ initCloudSync();          // 拉取云端标注并合并、重新套用（离线
     // 逐轮分请求（onlyTouch）：每请求 = 1 次分析 + 1 封信，稳在 Netlify 免费版 10s 函数时限内
     function sendTouch(t){
       var job=Object.assign({},base,{onlyTouch:t});
-      return fetch('/.netlify/functions/sendTest',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({jobs:[job]})})
-        .then(function(r){
-          // 响应解析加固：非 JSON（如 404 HTML / 网关错误）不再抛晦涩的 json 异常，直接说人话
-          return r.text().then(function(txt){
-            var d=null;
-            try{d=JSON.parse(txt);}catch(e){}
-            if(d===null){
-              var hint = (r.status===404||/Page not found|<html/i.test(txt))
-                ? '函数不存在（404）——线上未部署 Functions。请在 Mac 终端跑：bash /Users/ulaa/WorkBuddy/CheerAir-Outreach/deploy_cli.sh'
-                : ('HTTP '+r.status+' 响应非 JSON：'+txt.slice(0,120));
-              throw new Error(hint);
-            }
-            return {ok:r.ok,d:d};
-          });
-        })
+      return gtSendTest(job)
         .then(function(o){
           var r=o.d&&o.d.results&&o.d.results[0];
           if(!r){throw new Error('无返回结果');}
