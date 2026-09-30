@@ -67196,7 +67196,7 @@ function fbRangeText(){
 }
 
 /* ========== 筛选 + 排序 ========== */
-function apply(){
+function applyBase(){
   var q = S.q.trim().toLowerCase();
   var fbActive = Object.keys(S.fb).filter(function(k){ return S.fb[k]; });
   var tgActive = Object.keys(S.tags).filter(function(k){ return S.tags[k]; });
@@ -67218,6 +67218,11 @@ function apply(){
     if(S.other==='yes' && !c._hasOther) return false;
     return true;
   });
+  return out;
+}
+
+function apply(){
+  var out = applyBase();
 
   /* 资源库分类标签筛选（Tab） */
   if(S.tab){
@@ -67249,8 +67254,12 @@ function renderTabs(){
   html += '</div><div class="tabs-row" id="tabRow">';
 
   var list = S.tabDim==='status' ? STATUS_TAGS : STYLE_TAGS;
-  var tabs = [{key:'', n: CREATORS.length}];
-  list.forEach(function(t){ tabs.push({key:t, n: countTag(S.tabDim, t)}); });
+  var base = applyBase();  /* Tab 计数基于当前筛选结果（不含 Tab 本身），与上方筛选区联动 */
+  var tabs = [{key:'', n: base.length}];
+  list.forEach(function(t){
+    var n = base.filter(function(c){ return (S.tabDim==='status'?c._cat:c._vstyle)===t; }).length;
+    tabs.push({key:t, n:n});
+  });
   tabs.forEach(function(t){
     html += '<button class="tab'+(S.tab===t.key?' on':'')+'" data-tab="'+esc(t.key)+'">'
          + esc(t.key||'全部')+'<span class="n">'+t.n+'</span></button>';
@@ -67830,12 +67839,12 @@ function setTagBulk(dim, val){
 document.getElementById('q').addEventListener('input', function(e){
   S.q = e.target.value;
   document.getElementById('searchBox').classList.toggle('has', !!S.q);
-  render();
+  renderTabs(); render();
 });
 document.getElementById('qClear').addEventListener('click', function(){
   S.q=''; document.getElementById('q').value='';
   document.getElementById('searchBox').classList.remove('has');
-  render();
+  renderTabs(); render();
 });
 
 document.getElementById('sortKey').addEventListener('change', function(e){ S.sort=e.target.value; render(); });
@@ -67873,7 +67882,7 @@ document.getElementById('filters').addEventListener('click', function(e){
   else if(g==='salesFM'){ S.salesFM = Number(k); }
   else if(g==='mail'){ S.mail = (S.mail===k) ? 'all' : k; }
   else if(g==='other'){ S.other = (S.other===k) ? 'all' : k; }
-  renderFilters(); render();
+  renderFilters(); renderTabs(); render();
 });
 
 document.getElementById('ftog').addEventListener('click', function(){
