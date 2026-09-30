@@ -68292,6 +68292,9 @@ window.gtSendTest = function(jobsOrJob){
 .vi-mail{border:1px solid #2a2e36;border-radius:6px;padding:5px 7px;margin:4px 0;font-size:10.5px;background:#0e0f12;}
 .vi-mail .t{color:#ffae42;font-weight:600;}
 .vi-mail .s{color:#c9d1d9;}
+.vi-preview{background:#0e1419;border:1px solid #1d3a4a;border-radius:8px;padding:8px;margin:6px 0;}
+.vi-preview b{color:#5ad1ff;font-size:11px;}
+.vi-preview pre{white-space:pre-wrap;word-break:break-word;color:#c9d1d9;font-size:10.5px;line-height:1.5;margin:4px 0 0;font-family:inherit;}
 </style>
 <div id="viWidget">
   <button id="viToggle" class="vi-toggle" title="虚拟红人（社媒分析触达·真实外联）">➕ 虚拟红人（发信）</button>
@@ -68367,7 +68370,7 @@ window.gtSendTest = function(jobsOrJob){
     if(x.niche)base.niche=x.niche;
     if(x.handle)base.handle=x.handle;
     var analysis=null, sentMails=[], errs=[];
-    // 逐轮分请求（onlyTouch）：每请求 = 1 次分析 + 1 封信，稳在 Netlify 免费版 10s 函数时限内
+    // 逐轮分请求（onlyTouch）：每请求 = 1 次分析 + 1 封信；本机中继无 Netlify 10s 限制，分析给足 12s
     function sendTouch(t){
       var job=Object.assign({},base,{onlyTouch:t});
       return gtSendTest(job)
@@ -68384,7 +68387,11 @@ window.gtSendTest = function(jobsOrJob){
     for(var t=1;t<=touches;t++){(function(t){p=p.then(function(){return sendTouch(t);});})(t);}
     p.then(function(){
       var h='';
-      if(analysis)h+='<div class="vi-analysis"><b>分析结果</b> · 垂类=<b>'+esc(analysis.niche||'-')+'</b> · handle=@'+esc(analysis.handle||'-')+'<br>'+esc(analysis.analysisNote||'')+'</div>';
+      if(analysis){
+        h+='<div class="vi-analysis"><b>分析结果</b> · 平台=<b>'+esc(analysis.platform||'-')+'</b> · 垂类=<b>'+esc(analysis.niche||'-')+'</b> · handle=@'+esc(analysis.handle||'-')+'<br>'+esc(analysis.analysisNote||'')+'</div>';
+        var firstBody=(sentMails[0]&&sentMails[0].body||'').replace(/</g,'&lt;').slice(0,800);
+        if(firstBody)h+='<div class="vi-preview"><b>生成邮件预览（首轮 · 已用该红人链接生成）</b><pre>'+firstBody+'</pre></div>';
+      }
       h+='<div style="color:#3fb950;font-weight:600;margin:4px 0">✓ 已发 '+sentMails.length+'/'+touches+' 封触达至 '+esc(x.email)+'</div>';
       h+=sentMails.map(function(m){return '<div class="vi-mail"><span class="t">[轮'+m.touch+']</span> <span class="s">'+esc(m.subject)+'</span><br><span class="vi-msg">msg-id: '+esc(m.messageId||'')+'</span></div>';}).join('');
       h+='<div class="vi-tip">请打开该邮箱，查看【收件箱】与【垃圾邮件】两处，并核对邮件正文是否引用了链接内容。</div>';
