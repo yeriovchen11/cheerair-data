@@ -68226,7 +68226,7 @@ window.gtSendTest = function(jobsOrJob){
   els.send.onclick=function(){
     var inputs=$$('.tm-te');
     var jobs=inputs.filter(function(i){return i.value.trim() && i.value.indexOf('@')>=0;}).map(function(i){
-      return {name:i.dataset.name, niche:i.dataset.niche, handle:i.dataset.handle, testEmail:i.value.trim(), touch:parseInt(els.touch.value,10)||1, account:els.account.value};
+      return {name:i.dataset.name, niche:i.dataset.niche, handle:i.dataset.handle, to:i.value.trim(), touch:parseInt(els.touch.value,10)||1, account:els.account.value, testMode:true};
     });
     if(!jobs.length){els.result.innerHTML='<div class="tm-err">没有有效的测试收件箱（需含 @）。</div>';return;}
     els.send.disabled=true; els.result.innerHTML='<div class="tm-info">发送中（Gmail 真实发出，最多 25 封，请稍候）…</div>';
@@ -68249,11 +68249,11 @@ window.gtSendTest = function(jobsOrJob){
 })();
 </script>
 
-<!-- ========== <!-- ========== <!-- ========== <!-- ========== 虚拟红人（公司内部测试邮箱）管理 ==========
-     用途：手动添加「虚拟红人」= 公司/个人内部测试邮箱账号。
+<!-- ========== <!-- ========== <!-- ========== <!-- ========== 虚拟红人（社媒分析触达 · 真实外联）管理 ==========
+     用途：手动添加「虚拟红人」= 一位真实红人（填其真实邮箱 + 社媒链接）。
            粘贴红人社媒链接 → 服务端分析内容（og 标题/描述/正文，推断垂类与 handle）
-           → 复用生产同款模板生成主题/正文 → 通过同一 Gmail 通道真实发出 1–3 轮触达邮件。
-           用于端到端验证「社媒分析 → 邮件内容 → 送达」全链路（绝不外发真实红人）。
+           → 复用生产同款模板生成主题/正文 → 通过同一 Gmail 通道真实发出 1–3 轮触达邮件到该红人邮箱。
+           勾选「测试发信」时仅发到你填的邮箱并加 [TEST MODE] 标记，用于验证进箱率，不发给真实红人。
      发信：复用 /.netlify/functions/sendTest 的 link-compose 模式（与生产测试面板同一通道）。
      存储：虚拟红人列表存浏览器 localStorage（cheerair_virtual_influencers_v1），刷新不丢。
 -->
@@ -68294,12 +68294,12 @@ window.gtSendTest = function(jobsOrJob){
 .vi-mail .s{color:#c9d1d9;}
 </style>
 <div id="viWidget">
-  <button id="viToggle" class="vi-toggle" title="虚拟红人（公司内部测试邮箱）">➕ 虚拟红人（测试）</button>
+  <button id="viToggle" class="vi-toggle" title="虚拟红人（社媒分析触达·真实外联）">➕ 虚拟红人（发信）</button>
   <div id="viPanel" class="vi-panel" hidden>
-    <div class="vi-head"><span>➕ 虚拟红人（社媒分析触达测试）</span><button id="viMin" class="vi-x" title="收起">—</button></div>
-    <div class="vi-warn">⚠️ 把红人社媒链接（TikTok / Instagram / YouTube 等）贴进来，系统会<b>分析其分享内容</b>自动推断垂类并生成邮件主题/正文，再用<b>与生产同款</b>的 Gmail 通道真实发出 1–3 轮触达邮件到你的内部测试邮箱（<b>绝不外发真实红人</b>）。请到该邮箱查【收件箱】与【垃圾邮件】两处。</div>
+    <div class="vi-head"><span>➕ 虚拟红人（社媒分析触达）</span><button id="viMin" class="vi-x" title="收起">—</button></div>
+    <div class="vi-warn">⚠️ 把红人<b>真实邮箱</b>与社媒链接（TikTok / Instagram / YouTube 等）贴进来，系统会<b>分析其分享内容</b>自动推断垂类并生成邮件主题/正文，再用<b>与生产同款</b>的 Gmail 通道真实发出 1–3 轮触达邮件到该红人邮箱。勾选下方「🧪 测试发信」则仅发到你填的邮箱并加 [TEST MODE] 标记（用于验证进箱率，不发真实红人）。</div>
     <div class="vi-row"><label>名称（自定义，便于辨认）</label><input id="viName" type="text" placeholder="如：内测-小满 / QA-主页" /></div>
-    <div class="vi-row"><label>内部测试邮箱（收件箱）</label><input id="viEmail" type="text" placeholder="你的内部测试邮箱（如 test@公司域名）" /></div>
+    <div class="vi-row"><label>收件邮箱（真实红人邮箱）</label><input id="viEmail" type="text" placeholder="真实红人邮箱，如 creator@gmail.com" /></div>
     <div class="vi-row"><label>社媒平台链接（必填，用于内容分析）</label><input id="viLink" type="text" placeholder="https://www.tiktok.com/@xxx 或 instagram.com/xxx" /></div>
     <div class="vi-row vi-inline">
       <div><label>垂类（可选，留空则自动分析）</label><input id="viNiche" type="text" placeholder="留空=自动分析" /></div>
@@ -68309,6 +68309,7 @@ window.gtSendTest = function(jobsOrJob){
       <div><label>发件账号</label><select id="viAccount"><option value="1">Ulaa (yeriov.chen11)</option><option value="2">Govanda (jialicheer)</option></select></div>
       <div><label>触达轮数（几封）</label><select id="viTouches"><option value="3">3 封（首触+2跟进）</option><option value="2">2 封（首触+1跟进）</option><option value="1">1 封（仅首触）</option></select></div>
     </div>
+    <div class="vi-row"><label class="vi-check"><input id="viTestMode" type="checkbox" /> 🧪 测试发信（仅验证进箱：加 [TEST MODE] 标记发到你填的邮箱；不勾 = 真实发往红人）</label></div>
     <div class="vi-actions"><button id="viAdd" class="vi-btn vi-primary">＋ 添加虚拟红人</button></div>
     <div id="viList" class="vi-list"><div class="vi-empty">暂无虚拟红人，先在上方添加。</div></div>
     <div id="viResult" class="vi-tip"></div>
@@ -68318,7 +68319,7 @@ window.gtSendTest = function(jobsOrJob){
 (function(){
   var $=function(s,r){return (r||document).querySelector(s);};
   var LS_KEY='cheerair_virtual_influencers_v1';
-  var els={toggle:$('#viToggle'),panel:$('#viPanel'),min:$('#viMin'),name:$('#viName'),email:$('#viEmail'),link:$('#viLink'),niche:$('#viNiche'),handle:$('#viHandle'),account:$('#viAccount'),touches:$('#viTouches'),add:$('#viAdd'),list:$('#viList'),result:$('#viResult')};
+  var els={toggle:$('#viToggle'),panel:$('#viPanel'),min:$('#viMin'),name:$('#viName'),email:$('#viEmail'),link:$('#viLink'),niche:$('#viNiche'),handle:$('#viHandle'),account:$('#viAccount'),touches:$('#viTouches'),testMode:$('#viTestMode'),add:$('#viAdd'),list:$('#viList'),result:$('#viResult')};
   function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
   function load(){try{return JSON.parse(localStorage.getItem(LS_KEY)||'[]');}catch(e){return [];}}
   function save(a){try{localStorage.setItem(LS_KEY,JSON.stringify(a));}catch(e){}}
@@ -68347,22 +68348,22 @@ window.gtSendTest = function(jobsOrJob){
   els.add.onclick=function(){
     var name=els.name.value.trim(), email=els.email.value.trim().toLowerCase(), link=els.link.value.trim(), niche=els.niche.value.trim(), handle=els.handle.value.trim();
     if(!name){alert('请填写名称');return;}
-    if(!validEmail(email)){alert('测试邮箱格式无效（需含 @ 和域名）');return;}
+    if(!validEmail(email)){alert('收件邮箱格式无效（需含 @ 和域名）');return;}
     if(!validUrl(link)){alert('请填写有效的社媒平台链接（http/https 开头）');return;}
     var arr=load();
-    if(arr.some(function(x){return x.email===email;})){alert('该测试邮箱已存在');return;}
+    if(arr.some(function(x){return x.email===email;})){alert('该邮箱已存在');return;}
     arr.push({id:'vi'+Date.now(),name:name,email:email,link:link,niche:niche,handle:handle,account:els.account.value,touches:parseInt(els.touches.value,10)||3,createdAt:new Date().toISOString()});
     save(arr);
     els.name.value='';els.email.value='';els.link.value='';els.niche.value='';els.handle.value='';
     render();
-    els.result.innerHTML='<span style="color:#3fb950">✓ 已添加 '+esc(name)+'，点「发测试信」即开始社媒分析 + 触达测试。</span>';
+    els.result.innerHTML='<span style="color:#3fb950">✓ 已添加 '+esc(name)+'，点「发测试信」即开始社媒分析 + 触达（勾选测试模式则仅发到该邮箱验证进箱）。</span>';
   };
   function del(id){var arr=load().filter(function(x){return x.id!==id;});save(arr);render();}
   function sendOne(id){
     var x=load().find(function(y){return y.id===id;});if(!x)return;
     var touches=parseInt(x.touches,10)||3;
     els.result.innerHTML='<span style="color:#6cc0ff">开始触达测试（共 '+touches+' 轮，逐轮发送，Gmail 真实发出）…</span>';
-    var base={name:x.name,link:x.link,testEmail:x.email,account:String(x.account||'1'),touches:touches};
+    var base={name:x.name,link:x.link,to:x.email,account:String(x.account||'1'),touches:touches,testMode:els.testMode.checked};
     if(x.niche)base.niche=x.niche;
     if(x.handle)base.handle=x.handle;
     var analysis=null, sentMails=[], errs=[];
@@ -68386,7 +68387,7 @@ window.gtSendTest = function(jobsOrJob){
       if(analysis)h+='<div class="vi-analysis"><b>分析结果</b> · 垂类=<b>'+esc(analysis.niche||'-')+'</b> · handle=@'+esc(analysis.handle||'-')+'<br>'+esc(analysis.analysisNote||'')+'</div>';
       h+='<div style="color:#3fb950;font-weight:600;margin:4px 0">✓ 已发 '+sentMails.length+'/'+touches+' 封触达至 '+esc(x.email)+'</div>';
       h+=sentMails.map(function(m){return '<div class="vi-mail"><span class="t">[轮'+m.touch+']</span> <span class="s">'+esc(m.subject)+'</span><br><span class="vi-msg">msg-id: '+esc(m.messageId||'')+'</span></div>';}).join('');
-      h+='<div class="vi-tip">请打开该内部邮箱，查看【收件箱】与【垃圾邮件】两处，并核对邮件正文是否引用了链接内容。</div>';
+      h+='<div class="vi-tip">请打开该邮箱，查看【收件箱】与【垃圾邮件】两处，并核对邮件正文是否引用了链接内容。</div>';
       els.result.innerHTML=h;
     }).catch(function(e){
       var h='<span class="vi-error">✗ 中断：'+esc(e.message)+'</span>';
