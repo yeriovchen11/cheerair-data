@@ -68364,9 +68364,11 @@ window.gtSendTest = function(jobsOrJob){
   function del(id){var arr=load().filter(function(x){return x.id!==id;});save(arr);render();}
   function sendOne(id){
     var x=load().find(function(y){return y.id===id;});if(!x)return;
-    var touches=parseInt(x.touches,10)||3;
-    els.result.innerHTML='<span style="color:#6cc0ff">开始触达测试（共 '+touches+' 轮，逐轮发送，Gmail 真实发出）…</span>';
-    var base={name:x.name,link:x.link,to:x.email,account:String(x.account||'1'),touches:touches,testMode:els.testMode.checked};
+    var isTest=els.testMode.checked;
+    // 测试发信=单次验证邮件（与「仅验证进箱」语义一致）；真实发信才按配置轮数（默认3）
+    var touches=isTest?1:(parseInt(x.touches,10)||3);
+    els.result.innerHTML='<span style="color:#6cc0ff">'+(isTest?'开始测试发信（仅 1 封验证邮件，加 [TEST MODE] 标记）':'开始触达（共 '+touches+' 轮，逐轮发送，Gmail 真实发出')+'…</span>';
+    var base={name:x.name,link:x.link,to:x.email,account:String(x.account||'1'),touches:touches,testMode:isTest};
     if(x.niche)base.niche=x.niche;
     if(x.handle)base.handle=x.handle;
     var analysis=null, sentMails=[], errs=[];
