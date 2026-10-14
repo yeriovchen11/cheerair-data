@@ -308,10 +308,23 @@
           <span class="uc-row-title" data-page-node-id="WbRt8M2qR5nY9wZcLkV4uD">发信状态自动回写资源库</span>
           <span class="uc-tag tag-live" data-page-node-id="WbRz3K7sL1pX5nYcQmF8uE">已上线</span>
         </div>
-        <p class="uc-row-desc" data-page-node-id="WbRf9N4tB2qX6mLdRvC1uF">每日自动化第 2 步：读 sent_log 推导每个红人分类状态（首触→建联中；≥3 轮仍未回复→暂不跟进；回复 yes 仍留建联中），连同每轮邮件时间线（轮次 / 日期 / 主题 / 回复标记）回写红人资源库卡片，再自动重部署资源库。人工标注的「合作中 / 已完成」不被系统覆盖。</p>
+        <p class="uc-row-desc" data-page-node-id="WbRf9N4tB2qX6mLdRvC1uF">每日自动化第 2 步：读 sent_log 推导每个红人分类状态（首触→建联中；≥3 轮仍未回复→暂不跟进；回复 yes 仍留建联中），连同每轮邮件时间线（轮次 / 日期 / 主题 / 回复标记）回写红人资源库卡片，再自动重部署资源库。人工标注的「合作中 / 已完成」不被系统覆盖。每日自动推送 GitHub Pages（<code data-page-node-id="WbRt9x2L0mB4nK7vP">git 同源</code>，暂存库与远端共享历史，不再每次重建本地历史）。</p>
         <div class="uc-row-bottom" data-page-node-id="WbRk2M8pS6nY4xLdQvE3uG">
           <div class="uc-value" data-page-node-id="WbRp5N1tB9qX7mLdRvF4uH"><b data-page-node-id="WbRw8K3sL2pX6nYcQmG5uI">价值:</b> 资源库与发信记录单源同步，团队在红人卡片即可看到完整跟进脉络（默认收起的时间线可展开），无需在发信日志与资源库之间来回切换。</div>
           <div class="uc-flow" data-page-node-id="WbRy4M9pT3nY8xLdQvH6uJ">涉及节点: <code data-page-node-id="WbRz7K2sL5pX9nYcQmJ7uK">writeback_library.py</code> <code data-page-node-id="WbRa1N5tB8qX2mLdRvK8uL">sent_log</code> <code data-page-node-id="WbRb4M2pS7nY3xLdQvL9uM">状态机</code> <code data-page-node-id="WbRc8K6sL4pX1nYcQmM2uN">bakedOverlay 回写</code> <code data-page-node-id="WbRd3N9tB5qX4mLdRvN3uO">资源库重部署</code></div>
+        </div>
+      </div>
+
+      <div class="uc-row" data-page-node-id="Em101MaskFix01">
+        <div class="uc-row-head" data-page-node-id="Em101MaskHead1">
+          <span class="uc-row-num" data-page-node-id="Em101MaskNum1">6</span>
+          <span class="uc-row-title" data-page-node-id="Em101MaskTitle1">发信入口邮箱护栏</span>
+          <span class="uc-tag tag-live" data-page-node-id="Em101MaskTag1">已上线</span>
+        </div>
+        <p class="uc-row-desc" data-page-node-id="Em101MaskDesc1">发信前逐个校验收件地址：纯 ASCII + 合法邮箱形态，脏地址（脱敏掩码 <code data-page-node-id="Em101MaskCode1">•••@域名</code> / 格式损坏 / 空）当场拦下并醒目告警，绝不进 SMTP。2026-10-12 定位：名单邮箱被 PII 脱敏污染成非 ASCII 掩码，导致 smtplib 编 <code data-page-node-id="Em101MaskCode2">RCPT TO</code> 时 ascii 崩溃、整夜批次全军覆没（10-11、10-12 连续两晚）。现已回填真实邮箱并加护栏，一封脏数据不再拖垮整批。</p>
+        <div class="uc-row-bottom" data-page-node-id="Em101MaskBottom1">
+          <div class="uc-value" data-page-node-id="Em101MaskValue1"><b data-page-node-id="Em101MaskValueB1">价值:</b> 单个脏地址不再让整批邮件陪葬；名单数据被脱敏流程污染时能第一时间暴露而不是静默丢信。</div>
+          <div class="uc-flow" data-page-node-id="Em101MaskFlow1">涉及节点: <code data-page-node-id="Em101MaskF1">email_is_sendable</code> <code data-page-node-id="Em101MaskF2">custom_influencers.csv</code> <code data-page-node-id="Em101MaskF3">RCPT TO 编码</code> <code data-page-node-id="Em101MaskF4">批次存活告警</code></div>
         </div>
       </div>
 
